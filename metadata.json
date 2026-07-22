@@ -1,0 +1,6 @@
+{
+  "name": "Carrom Board",
+  "description": "A feature-rich local multiplayer Carrom Board game with beautiful theme customizations, realistic particle physics, custom coin packages, player analytics, and match records.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
