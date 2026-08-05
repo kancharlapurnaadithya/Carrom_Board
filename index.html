@@ -1322,7 +1322,9 @@
 
             const dx = aimStart.x - aimCurrent.x;
             const dy = aimStart.y - aimCurrent.y;
-            const power = Math.min(Math.hypot(dx, dy) * 0.18, 18);
+            const rawDist = Math.hypot(dx, dy);
+            const powerMultiplier = window.currentPowerBoost || 1.3;
+            const power = Math.min(rawDist * 0.32 * powerMultiplier, 32);
 
             if (power > 1) {
                 const angle = Math.atan2(dy, dx);
@@ -1330,8 +1332,8 @@
                 striker.vy = Math.sin(angle) * power;
                 isMoving = true;
                 turnHasPocketed = false;
-                playHitSound(0.4, 500);
-                statusMsg.innerText = "Shot fired!";
+                playHitSound(0.5, 550);
+                statusMsg.innerText = power > 20 ? "⚡ SUPER SHOT FIRED!" : "Shot fired!";
             }
         }
 

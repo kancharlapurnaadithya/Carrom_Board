@@ -98,6 +98,7 @@ fun GameScreen(
                 CarromBoardCanvas(
                     engine = engine,
                     strikerPlacedPositionFraction = viewModel.strikerPositionFraction,
+                    powerBoostMultiplier = viewModel.powerBoostMultiplier,
                     onAimStart = { offset ->
                         // State transition if needed
                     },
@@ -113,13 +114,67 @@ fun GameScreen(
                 )
             }
 
-            // 3. BASELINE POSITIONING SLIDER
+            // 3. STRIKER POWER BOOST SELECTOR & BASELINE POSITIONING SLIDER
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Power Boost Selector Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "SHOT POWER:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SleekTextSecondary,
+                        letterSpacing = 1.sp
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val boosts = listOf(
+                            1.0f to "1.0x",
+                            1.5f to "⚡ 1.5x",
+                            2.0f to "💥 2.0x"
+                        )
+                        boosts.forEach { (boostVal, label) ->
+                            val isSelected = viewModel.powerBoostMultiplier == boostVal
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    SoundManager.playStrikeSound()
+                                    viewModel.setPowerBoost(boostVal)
+                                },
+                                label = {
+                                    Text(
+                                        text = label,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) Color.Black else SleekTextPrimary
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = if (boostVal == 2.0f) SleekOrange else SleekAmber,
+                                    containerColor = SleekSurface
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isSelected) SleekOrange else SleekSurfaceBorder
+                                ),
+                                modifier = Modifier.height(28.dp)
+                            )
+                        }
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -127,7 +182,7 @@ fun GameScreen(
                 ) {
                     val activePlayer = engine.players.getOrNull(engine.activePlayerIndex)
                     Text(
-                        text = "POSITION STRIKER: ${activePlayer?.name ?: ""}",
+                        text = "POSITION: ${activePlayer?.name ?: ""}",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = SleekTextSecondary,
@@ -135,7 +190,7 @@ fun GameScreen(
                     )
 
                     Text(
-                        text = if (engine.isMoving) "COINS IN MOTION..." else "PULL BACK STRIKER TO AIM & POWER",
+                        text = if (engine.isMoving) "COINS IN MOTION..." else "PULL BACK TO AIM & FIRE",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (engine.isMoving) SleekOrangeLight else SleekAmber

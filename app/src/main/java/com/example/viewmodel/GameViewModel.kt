@@ -88,8 +88,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var isPaused by mutableStateOf(false)
         private set
 
-    // Placement state for slider
+    // Placement & Power state
     var strikerPositionFraction by mutableStateOf(0.5f)
+    var powerBoostMultiplier by mutableStateOf(1.3f)
+
+    fun setPowerBoost(boost: Float) {
+        powerBoostMultiplier = boost
+    }
 
     init {
         // Init default achievements in DB

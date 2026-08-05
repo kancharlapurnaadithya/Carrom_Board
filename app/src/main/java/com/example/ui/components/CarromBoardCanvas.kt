@@ -31,6 +31,7 @@ import kotlin.math.sqrt
 fun CarromBoardCanvas(
     engine: CarromEngine,
     strikerPlacedPositionFraction: Float,
+    powerBoostMultiplier: Float = 1.0f,
     onAimStart: (Offset) -> Unit,
     onAimDrag: (Offset) -> Unit,
     onAimRelease: (Offset, Float) -> Unit,
@@ -105,18 +106,23 @@ fun CarromBoardCanvas(
 
                                 // Power bounds
                                 val dragDistance = sqrt(vxVirtual * vxVirtual + vyVirtual * vyVirtual)
-                                val maxDrag = 150f // Virtual dimension drag limit
+                                val maxDrag = 200f // Expanded virtual dimension drag limit for powerful shots
                                 val clampedDistance = dragDistance.coerceAtMost(maxDrag)
 
                                 val angle = atan2(vyVirtual, vxVirtual)
-                                val finalPowerFactor = 0.22f // Adjust velocity multiplier
-                                val finalVx = cos(angle) * clampedDistance * finalPowerFactor
-                                val finalVy = sin(angle) * clampedDistance * finalPowerFactor
+                                val basePowerFactor = 0.35f // Boosted striker base power
+                                val finalFactor = basePowerFactor * powerBoostMultiplier
+                                val finalVx = cos(angle) * clampedDistance * finalFactor
+                                val finalVy = sin(angle) * clampedDistance * finalFactor
 
                                 // Minimum firing threshold
-                                if (clampedDistance > 12f) {
+                                if (clampedDistance > 10f) {
                                     onAimRelease(dragStartOffset, clampedDistance)
                                     engine.launchStriker(finalVx, finalVy)
+                                    if (clampedDistance > 130f) {
+                                        // Extra particle flash on super shot launch
+                                        engine.triggerStreakParticles(engine.striker.x, engine.striker.y, Color(0xFFFFB300))
+                                    }
                                     SoundManager.playStrikeSound()
                                     SoundManager.triggerVibration(context)
                                 } else {
@@ -168,7 +174,7 @@ fun CarromBoardCanvas(
                 }
             }
 
-            // 5. Draw Aiming laser preview line
+            // 5. Draw Aiming laser preview line & extended ricochet trajectory
             if (isDraggingStr) {
                 val sX = engine.striker.x * scaleX
                 val sY = engine.striker.y * scaleY
@@ -181,35 +187,88 @@ fun CarromBoardCanvas(
                 if (dist > 8f) {
                     // Line of action of shooting (Opposite of drag)
                     val aimAngle = atan2(-touchDistY, -touchDistX)
-                    val maxRay = 280f * avgScale
-                    val shootLen = (dist * 2.5f).coerceAtMost(maxRay)
+                    val maxRay = 450f * avgScale // Extended laser sight
+                    val shootLen = (dist * 3.5f).coerceAtMost(maxRay)
 
                     val endAimX = sX + cos(aimAngle) * shootLen
                     val endAimY = sY + sin(aimAngle) * shootLen
 
                     // Laser pointer preview line
-                    val previewColor = if (theme.isNeon) Color(0xFFFF0055) else Color(0xFFFF3D00)
+                    val previewColor = when {
+                        dist > 120f -> Color(0xFFFF0055)
+                        dist > 60f -> Color(0xFFFF9100)
+                        else -> Color(0xFF00E676)
+                    }
+
                     drawLine(
-                        color = previewColor.copy(alpha = 0.6f),
+                        color = previewColor.copy(alpha = 0.85f),
                         start = Offset(sX, sY),
                         end = Offset(endAimX, endAimY),
-                        strokeWidth = 3f * avgScale,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f)
+                        strokeWidth = 3.5f * avgScale,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f)
+                    )
+
+                    // Target impact reticle
+                    drawCircle(
+                        color = previewColor,
+                        radius = 8f * avgScale,
+                        center = Offset(endAimX, endAimY),
+                        style = Stroke(width = 2.5f * avgScale)
+                    )
+
+                    // Extended Rebound reflection line preview
+                    val boardMinX = CarromEngine.PLAYABLE_MARGIN * scaleX
+                    val boardMaxX = (CarromEngine.BOARD_SIZE - CarromEngine.PLAYABLE_MARGIN) * scaleX
+                    val boardMinY = CarromEngine.PLAYABLE_MARGIN * scaleY
+                    val boardMaxY = (CarromEngine.BOARD_SIZE - CarromEngine.PLAYABLE_MARGIN) * scaleY
+
+                    // Simple bounce calculation if ray hits border
+                    var bounceAngle = aimAngle
+                    var hitBorder = false
+                    if (endAimX <= boardMinX || endAimX >= boardMaxX) {
+                        bounceAngle = Math.PI.toFloat() - aimAngle
+                        hitBorder = true
+                    } else if (endAimY <= boardMinY || endAimY >= boardMaxY) {
+                        bounceAngle = -aimAngle
+                        hitBorder = true
+                    }
+
+                    if (hitBorder) {
+                        val reboundLen = 120f * avgScale
+                        val reboundEndX = endAimX + cos(bounceAngle) * reboundLen
+                        val reboundEndY = endAimY + sin(bounceAngle) * reboundLen
+
+                        drawLine(
+                            color = Color(0xFFFFD700).copy(alpha = 0.7f),
+                            start = Offset(endAimX, endAimY),
+                            end = Offset(reboundEndX, reboundEndY),
+                            strokeWidth = 2.5f * avgScale,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                        )
+                    }
+
+                    // Draw dynamic power ring gauge around striker
+                    val powerFraction = (dist / 150f).coerceIn(0f, 1f)
+                    drawCircle(
+                        color = previewColor.copy(alpha = 0.8f),
+                        radius = (CarromEngine.STRIKER_RADIUS + 8f + powerFraction * 14f) * avgScale,
+                        center = Offset(sX, sY),
+                        style = Stroke(width = 3f * avgScale, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f))
                     )
 
                     // Draw drag back cursor circle
                     drawCircle(
-                        color = if (theme.isNeon) Color(0xFF00FFCC) else Color(0xFF424242).copy(alpha = 0.5f),
-                        radius = (CarromEngine.STRIKER_RADIUS - 6f) * avgScale,
+                        color = if (theme.isNeon) Color(0xFF00FFCC) else Color(0xFF424242).copy(alpha = 0.6f),
+                        radius = (CarromEngine.STRIKER_RADIUS - 4f) * avgScale,
                         center = dragCurrentOffset,
-                        style = Stroke(width = 2f * avgScale)
+                        style = Stroke(width = 2.5f * avgScale)
                     )
 
                     drawLine(
-                        color = if (theme.isNeon) Color(0xFF00FFCC) else Color(0xFFE5A93C).copy(alpha = 0.7f),
+                        color = if (theme.isNeon) Color(0xFF00FFCC) else Color(0xFFE5A93C).copy(alpha = 0.8f),
                         start = Offset(sX, sY),
                         end = dragCurrentOffset,
-                        strokeWidth = 1.5f * avgScale
+                        strokeWidth = 2f * avgScale
                     )
                 }
             }
