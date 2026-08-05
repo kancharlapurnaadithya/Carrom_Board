@@ -33,6 +33,12 @@ enum class AppScreen {
     ACHIEVEMENTS
 }
 
+enum class GameMode(val displayName: String, val description: String) {
+    VS_COMPUTER("Play Vs Computer", "Challenge smart AI Bot"),
+    PASS_AND_PLAY("Pass & Play", "Local 2, 3 or 4 players"),
+    PRACTICE("Practice Mode", "Free practice with unlimited shots")
+}
+
 class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private val sharedPrefs: SharedPreferences =
@@ -65,11 +71,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     // Matchmaking configuration
+    var gameMode by mutableStateOf(GameMode.VS_COMPUTER)
     var playerCount by mutableStateOf(2)
     var player1Name by mutableStateOf("Player 1")
     var player2Name by mutableStateOf("Player 2")
     var player3Name by mutableStateOf("Player 3")
     var player4Name by mutableStateOf("Player 4")
+
+    private var aiTurnInProgress = false
 
     // Game Loop Engine
     var engine by mutableStateOf(CarromEngine())
@@ -162,17 +171,24 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startNewGame() {
-        // Collect names based on player count
-        val names = when (playerCount) {
-            2 -> listOf(player1Name, player2Name)
-            3 -> listOf(player1Name, player2Name, player3Name)
-            4 -> listOf(player1Name, player2Name, player3Name, player4Name)
-            else -> listOf(player1Name, player2Name)
+        // Collect names based on game mode & player count
+        val (finalCount, names) = when (gameMode) {
+            GameMode.VS_COMPUTER -> Pair(2, listOf(player1Name.ifBlank { "You" }, "Computer AI"))
+            GameMode.PRACTICE -> Pair(1, listOf(player1Name.ifBlank { "Player 1" }))
+            GameMode.PASS_AND_PLAY -> {
+                val pList = when (playerCount) {
+                    2 -> listOf(player1Name, player2Name)
+                    3 -> listOf(player1Name, player2Name, player3Name)
+                    4 -> listOf(player1Name, player2Name, player3Name, player4Name)
+                    else -> listOf(player1Name, player2Name)
+                }
+                Pair(playerCount, pList)
+            }
         }
 
         // Setup Engine
         engine = CarromEngine(
-            numberOfPlayers = playerCount,
+            numberOfPlayers = finalCount,
             playerNames = names,
             boardTheme = boardTheme,
             coinTheme = coinTheme
@@ -180,6 +196,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         isPaused = false
         strikerPositionFraction = 0.5f
+        aiTurnInProgress = false
         navigateTo(AppScreen.GAME)
     }
 
@@ -187,6 +204,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         engine.resetGame()
         isPaused = false
         strikerPositionFraction = 0.5f
+        aiTurnInProgress = false
         startLoop()
     }
 
@@ -237,9 +255,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     // Rebounds can be detected if striker direction flips
-                    // We can also let standard bounces handle it inside engine, but simple audio tick is:
                     if (engine.particles.size > 0 && Math.random() < 0.15) {
-                        // Play a bounce during active particle clouds for satisfying realism
                         SoundManager.playBounceSound()
                     }
 
@@ -247,6 +263,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     if (engine.gameCompleted && wasMoving && !isMovingNow) {
                         SoundManager.playVictorySound()
                         saveCompletedMatchToDatabase()
+                    }
+
+                    // Trigger AI Computer shot if it's Computer's turn
+                    if (gameMode == GameMode.VS_COMPUTER && engine.activePlayerIndex == 1 && !engine.isMoving && engine.isStrikerPlaced && !aiTurnInProgress && !engine.gameCompleted) {
+                        aiTurnInProgress = true
+                        viewModelScope.launch {
+                            delay(800)
+                            if (engine.activePlayerIndex == 1 && !engine.isMoving && !engine.gameCompleted) {
+                                val (aiX, aiPower) = engine.calculateAiShot()
+                                engine.updateStrikerPlacement((aiX - 180f) / 440f)
+                                delay(400)
+                                engine.launchStriker(aiPower.x, aiPower.y)
+                                SoundManager.playStrikeSound()
+                            }
+                            aiTurnInProgress = false
+                        }
                     }
                 }
                 delay(16) // ~60 FPS update

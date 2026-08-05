@@ -251,30 +251,70 @@ fun MainMenuScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // 4. Core Buttons Section
+            // 4. Core Buttons & Game Modes Section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // PLAY local duel card
+                Text(
+                    text = "SELECT GAME MODE",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SleekTextMuted,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+
+                // 1. PLAY VS COMPUTER
                 MenuItemButton(
-                    title = "START MATCH",
-                    subtitle = "2, 3, or 4 Players offline session",
-                    icon = Icons.Filled.PlayArrow,
+                    title = "PLAY VS COMPUTER",
+                    subtitle = "Challenge smart Carrom AI Bot",
+                    icon = Icons.Filled.SmartToy,
                     glowColor = SleekOrange,
                     onClick = {
                         SoundManager.playStrikeSound()
+                        viewModel.gameMode = com.example.viewmodel.GameMode.VS_COMPUTER
+                        viewModel.startNewGame()
+                    },
+                    modifier = Modifier.testTag("vs_computer_button")
+                )
+
+                // 2. PASS & PLAY
+                MenuItemButton(
+                    title = "PASS & PLAY (LOCAL)",
+                    subtitle = "2, 3, or 4 Players offline session",
+                    icon = Icons.Filled.Group,
+                    glowColor = SleekAmber,
+                    onClick = {
+                        SoundManager.playStrikeSound()
+                        viewModel.gameMode = com.example.viewmodel.GameMode.PASS_AND_PLAY
                         viewModel.navigateTo(AppScreen.PLAYER_SETUP)
                     },
-                    modifier = Modifier.testTag("play_button")
+                    modifier = Modifier.testTag("pass_and_play_button")
                 )
+
+                // 3. PRACTICE MODE
+                MenuItemButton(
+                    title = "PRACTICE MODE",
+                    subtitle = "Free practice with unlimited shots",
+                    icon = Icons.Filled.SportsEsports,
+                    glowColor = SleekOrangeLight,
+                    onClick = {
+                        SoundManager.playStrikeSound()
+                        viewModel.gameMode = com.example.viewmodel.GameMode.PRACTICE
+                        viewModel.startNewGame()
+                    },
+                    modifier = Modifier.testTag("practice_button")
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Statistics Button
                     Box(modifier = Modifier.weight(1f)) {

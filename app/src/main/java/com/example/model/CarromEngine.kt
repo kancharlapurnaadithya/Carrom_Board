@@ -549,6 +549,57 @@ class CarromEngine(
         matchLogs.add("Match completed! Winner: ${winnerName} with ${winningPlayer.score} pts.")
     }
 
+    fun calculateAiShot(): Pair<Float, PhysicsVector> {
+        val unpotted = coins.filter { !it.isPocketed }
+        if (unpotted.isEmpty()) {
+            return Pair(400f, PhysicsVector(0f, 12f))
+        }
+
+        val aiY = getBaselineY(activePlayerIndex)
+        var bestCoin = unpotted.first()
+        var bestPocket = POCKETS[2] // Bottom Left
+        var minScore = Float.MAX_VALUE
+
+        for (coin in unpotted) {
+            for (pocket in POCKETS) {
+                val dxP = coin.x - pocket.x
+                val dyP = coin.y - pocket.y
+                val distToPocket = sqrt(dxP * dxP + dyP * dyP)
+
+                val dxA = coin.x - 400f
+                val dyA = coin.y - aiY
+                val distToAi = sqrt(dxA * dxA + dyA * dyA)
+
+                val score = distToPocket * 1.5f + distToAi * 0.5f
+                if (score < minScore) {
+                    minScore = score
+                    bestCoin = coin
+                    bestPocket = pocket
+                }
+            }
+        }
+
+        val pdx = bestPocket.x - bestCoin.x
+        val pdy = bestPocket.y - bestCoin.y
+        val pdist = sqrt(pdx * pdx + pdy * pdy).coerceAtLeast(1f)
+        val normPx = pdx / pdist
+        val normPy = pdy / pdist
+
+        val targetX = bestCoin.x - normPx * (COIN_RADIUS + STRIKER_RADIUS)
+        val targetY = bestCoin.y - normPy * (COIN_RADIUS + STRIKER_RADIUS)
+
+        val strikerX = targetX.coerceIn(180f, 620f)
+        val dx = targetX - strikerX
+        val dy = targetY - aiY
+        val dist = sqrt(dx * dx + dy * dy).coerceAtLeast(1f)
+
+        val speed = (12f + (dist / 400f) * 6f).coerceIn(10f, 17f)
+        val vx = (dx / dist) * speed
+        val vy = (dy / dist) * speed
+
+        return Pair(strikerX, PhysicsVector(vx, vy))
+    }
+
     fun triggerStreakParticles(px: Float, py: Float, color: Color) {
         val count = 25
         for (i in 0 until count) {

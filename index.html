@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Carrom Board Game - Play Online on GitHub Pages</title>
-    <meta name="description" content="Play Carrom Board Game directly in your web browser! Feature-rich multiplayer game with realistic physics, striker aiming, coins, pockets, and score tracking.">
+    <title>Carrom Board Game - Championship Dashboard & AI Bot</title>
+    <meta name="description" content="Play Carrom Board Game with Dashboard, Stats, Custom Themes, and Play against Computer AI Bot!">
     <style>
         :root {
             --bg-color: #0F172A;
             --card-bg: #1E293B;
+            --card-border: #334155;
             --accent-color: #F59E0B;
             --accent-hover: #D97706;
             --text-primary: #F8FAFC;
             --text-secondary: #94A3B8;
-            --border-color: #334155;
+            --text-muted: #64748B;
             --board-wood: #E6BA7E;
             --board-dark-wood: #78350F;
+            --success-color: #10B981;
+            --danger-color: #EF4444;
         }
 
         * {
@@ -41,21 +44,25 @@
         header {
             width: 100%;
             background-color: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--card-border);
             padding: 0.85rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
 
         .logo {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             font-weight: 800;
             color: var(--accent-color);
+            cursor: pointer;
         }
 
         .logo-icon {
@@ -71,14 +78,264 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .coins-badge {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 0.35rem 0.75rem;
+            border-radius: 1.5rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
         .main-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.85rem;
-            padding: 0.75rem;
+            gap: 1rem;
+            padding: 1rem;
             width: 100%;
-            max-width: 520px;
+            max-width: 540px;
+        }
+
+        /* DASHBOARD SECTION */
+        .dashboard-view {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .profile-card {
+            background: linear-gradient(135deg, #1E293B, #0F172A);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .avatar-circle {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #000;
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .profile-info h3 {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .profile-info p {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* DASHBOARD TABS */
+        .dash-tabs {
+            display: flex;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 0.3rem;
+            gap: 0.3rem;
+            width: 100%;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.6rem 0.4rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: #000;
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* MODE SELECTION CARDS */
+        .mode-card {
+            background: var(--card-bg);
+            border: 1.5.dp solid var(--card-border);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .mode-card:hover, .mode-card:active {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .mode-card-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .mode-icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .mode-icon-ai { background: rgba(245, 158, 11, 0.15); color: var(--accent-color); }
+        .mode-icon-pvp { background: rgba(16, 185, 129, 0.15); color: var(--success-color); }
+        .mode-icon-practice { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+
+        .mode-info h4 {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .mode-info p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.15rem;
+        }
+
+        .mode-arrow {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+        }
+
+        /* STATS PANEL */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--accent-color);
+        }
+
+        /* THEME SELECTOR PANEL */
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .theme-card {
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .theme-card.active {
+            border-color: var(--accent-color);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .theme-preview-box {
+            width: 100%;
+            height: 60px;
+            border-radius: 0.5rem;
+            border: 2px solid rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-name {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* GAMEPLAY SECTION */
+        .game-view {
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .game-view.active {
+            display: flex;
         }
 
         .scoreboard {
@@ -87,7 +344,7 @@
             align-items: center;
             width: 100%;
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--card-border);
             padding: 0.6rem 1rem;
             border-radius: 0.75rem;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -162,7 +419,7 @@
             gap: 0.6rem;
             width: 100%;
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--card-border);
             padding: 0.75rem 1rem;
             border-radius: 0.75rem;
         }
@@ -185,7 +442,7 @@
             flex: 1;
             height: 10px;
             border-radius: 5px;
-            background: var(--border-color);
+            background: var(--card-border);
             outline: none;
             accent-color: var(--accent-color);
             cursor: pointer;
@@ -228,7 +485,7 @@
         .btn-secondary {
             background-color: transparent;
             color: var(--text-primary);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--card-border);
         }
 
         .btn-secondary:hover {
@@ -237,36 +494,11 @@
         }
 
         .status-msg {
-            font-size: 0.82rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 700;
             color: var(--accent-color);
-            min-height: 1.2rem;
+            min-height: 1.3rem;
             text-align: center;
-        }
-
-        .instructions {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 0.75rem;
-            padding: 0.85rem 1rem;
-            width: 100%;
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            line-height: 1.45;
-        }
-
-        .instructions h4 {
-            color: var(--text-primary);
-            margin-bottom: 0.3rem;
-            font-size: 0.9rem;
-        }
-
-        .instructions ul {
-            padding-left: 1.1rem;
-        }
-
-        .instructions li {
-            margin-bottom: 0.2rem;
         }
 
         /* Winner Modal */
@@ -276,7 +508,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             display: none;
             align-items: center;
             justify-content: center;
@@ -317,7 +549,7 @@
             text-align: center;
             color: var(--text-secondary);
             font-size: 0.8rem;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid var(--card-border);
             background-color: var(--card-bg);
         }
 
@@ -326,7 +558,7 @@
                 padding: 0.75rem 1rem;
             }
             .logo {
-                font-size: 1.15rem;
+                font-size: 1.1rem;
             }
             .main-container {
                 padding: 0.5rem;
@@ -337,58 +569,210 @@
 <body>
 
     <header>
-        <div class="logo">
+        <div class="logo" onclick="showDashboard()">
             <div class="logo-icon">🎯</div>
-            <span>Carrom Board Game</span>
+            <span>CARROM DUEL</span>
         </div>
-        <button class="btn btn-secondary" onclick="toggleAudio()" id="audioBtn">🔊 Sound: ON</button>
+
+        <div class="header-actions">
+            <div class="coins-badge">
+                <span>🟡</span>
+                <span id="headerCoins">24,500</span>
+            </div>
+            <button class="btn btn-secondary" onclick="toggleAudio()" id="audioBtn">🔊 ON</button>
+        </div>
     </header>
 
     <div class="main-container">
-        <!-- Scoreboard -->
-        <div class="scoreboard">
-            <div class="player-card active" id="p1Card">
-                <span class="player-name">Player 1 (Bottom)</span>
-                <span class="player-score" id="p1Score">0</span>
+        <!-- 1. DASHBOARD VIEW -->
+        <div class="dashboard-view" id="dashboardView">
+            <!-- Profile Overview Header -->
+            <div class="profile-card">
+                <div class="avatar-circle">JD</div>
+                <div class="profile-info">
+                    <p>Grandmaster Rank</p>
+                    <h3>Jay Dawson</h3>
+                </div>
             </div>
 
-            <div class="turn-badge" id="turnStatus">P1 TURN</div>
+            <!-- Navigation Tabs -->
+            <div class="dash-tabs">
+                <button class="tab-btn active" onclick="switchTab('modes')">🎮 Modes</button>
+                <button class="tab-btn" onclick="switchTab('stats')">📊 Stats</button>
+                <button class="tab-btn" onclick="switchTab('themes')">🎨 Themes</button>
+                <button class="tab-btn" onclick="switchTab('trophies')">🏆 Trophies</button>
+            </div>
 
-            <div class="player-card" id="p2Card">
-                <span class="player-name">Player 2 (Top)</span>
-                <span class="player-score" id="p2Score">0</span>
+            <!-- Tab 1: Game Modes -->
+            <div class="tab-content active" id="tab-modes">
+                <!-- Play vs Computer (AI) -->
+                <div class="mode-card" onclick="startGame('vs_computer')">
+                    <div class="mode-card-left">
+                        <div class="mode-icon-box mode-icon-ai">🤖</div>
+                        <div class="mode-info">
+                            <h4>Play vs Computer</h4>
+                            <p>Challenge the smart Carrom AI Bot</p>
+                        </div>
+                    </div>
+                    <span class="mode-arrow">➔</span>
+                </div>
+
+                <!-- Pass & Play (2 Players) -->
+                <div class="mode-card" onclick="startGame('pass_play')">
+                    <div class="mode-card-left">
+                        <div class="mode-icon-box mode-icon-pvp">👥</div>
+                        <div class="mode-info">
+                            <h4>Pass & Play (2P)</h4>
+                            <p>Play offline with a friend on 1 screen</p>
+                        </div>
+                    </div>
+                    <span class="mode-arrow">➔</span>
+                </div>
+
+                <!-- Practice Mode -->
+                <div class="mode-card" onclick="startGame('practice')">
+                    <div class="mode-card-left">
+                        <div class="mode-icon-box mode-icon-practice">🎯</div>
+                        <div class="mode-info">
+                            <h4>Practice Mode</h4>
+                            <p>Unlimited shots to master your aiming</p>
+                        </div>
+                    </div>
+                    <span class="mode-arrow">➔</span>
+                </div>
+            </div>
+
+            <!-- Tab 2: Stats -->
+            <div class="tab-content" id="tab-stats">
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <span class="stat-label">Matches Played</span>
+                        <span class="stat-value" id="statMatches">42</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Total Wins</span>
+                        <span class="stat-value" id="statWins">29</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Win Rate</span>
+                        <span class="stat-value" id="statWinRate">69%</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Queens Pocketed</span>
+                        <span class="stat-value" id="statQueens">18</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Themes -->
+            <div class="tab-content" id="tab-themes">
+                <div class="themes-grid">
+                    <div class="theme-card active" onclick="setBoardTheme('wooden', this)">
+                        <div class="theme-preview-box" style="background:#E6BA7E; border-color:#78350F;">
+                            <span style="color:#78350F; font-weight:bold;">🎯</span>
+                        </div>
+                        <span class="theme-name">Classic Wood</span>
+                    </div>
+
+                    <div class="theme-card" onclick="setBoardTheme('royal', this)">
+                        <div class="theme-preview-box" style="background:#0D1B2A; border-color:#E5A93C;">
+                            <span style="color:#E5A93C; font-weight:bold;">👑</span>
+                        </div>
+                        <span class="theme-name">Royal Navy</span>
+                    </div>
+
+                    <div class="theme-card" onclick="setBoardTheme('neon', this)">
+                        <div class="theme-preview-box" style="background:#110022; border-color:#FF0055;">
+                            <span style="color:#00FFCC; font-weight:bold;">⚡</span>
+                        </div>
+                        <span class="theme-name">Cyberpunk</span>
+                    </div>
+
+                    <div class="theme-card" onclick="setBoardTheme('carbon', this)">
+                        <div class="theme-preview-box" style="background:#1C1C1E; border-color:#444444;">
+                            <span style="color:#F2F2F7; font-weight:bold;">🏁</span>
+                        </div>
+                        <span class="theme-name">Carbon Dark</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Trophies -->
+            <div class="tab-content" id="tab-trophies">
+                <div class="mode-card">
+                    <div class="mode-card-left">
+                        <div style="font-size:2rem;">🏆</div>
+                        <div class="mode-info">
+                            <h4>First Victory</h4>
+                            <p>Won 1 match against Computer AI</p>
+                        </div>
+                    </div>
+                    <span style="color:var(--success-color); font-weight:bold;">Unlocked</span>
+                </div>
+
+                <div class="mode-card">
+                    <div class="mode-card-left">
+                        <div style="font-size:2rem;">👑</div>
+                        <div class="mode-info">
+                            <h4>Queen Cover Master</h4>
+                            <p>Pocket Queen + Cover in 1 turn</p>
+                        </div>
+                    </div>
+                    <span style="color:var(--success-color); font-weight:bold;">Unlocked</span>
+                </div>
+
+                <div class="mode-card">
+                    <div class="mode-card-left">
+                        <div style="font-size:2rem;">🔥</div>
+                        <div class="mode-info">
+                            <h4>Sharpshooter</h4>
+                            <p>Pocket 3 coins in a single turn</p>
+                        </div>
+                    </div>
+                    <span style="color:var(--accent-color); font-weight:bold;">Progress 2/3</span>
+                </div>
             </div>
         </div>
 
-        <!-- Status Message Banner -->
-        <div class="status-msg" id="statusMsg">Drag slider to position striker, then pull back to strike!</div>
-
-        <!-- Canvas Board -->
-        <div class="game-wrapper">
-            <canvas id="carromCanvas" width="500" height="500"></canvas>
-        </div>
-
-        <!-- Striker Baseline Position Slider & Controls -->
-        <div class="controls-panel">
-            <div class="slider-group">
-                <span class="slider-label">Striker Baseline:</span>
-                <input type="range" id="positionSlider" min="110" max="390" value="250">
+        <!-- 2. GAMEPLAY VIEW -->
+        <div class="game-view" id="gameView">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                <button class="btn btn-secondary" onclick="showDashboard()">🏠 Dashboard</button>
+                <div class="status-msg" id="statusMsg">Your turn! Position striker & shoot.</div>
             </div>
 
-            <div class="btn-group">
-                <button class="btn btn-secondary" onclick="resetStriker()">📍 Center Striker</button>
-                <button class="btn btn-primary" onclick="restartGame()">🔄 New Game</button>
-            </div>
-        </div>
+            <!-- Scoreboard -->
+            <div class="scoreboard">
+                <div class="player-card active" id="p1Card">
+                    <span class="player-name" id="p1NameDisplay">You (Bottom)</span>
+                    <span class="player-score" id="p1Score">0</span>
+                </div>
 
-        <!-- Quick Instructions -->
-        <div class="instructions">
-            <h4>🎯 Controls & Rules:</h4>
-            <ul>
-                <li><strong>Position Striker:</strong> Adjust slider to move striker along your baseline.</li>
-                <li><strong>Aim & Strike:</strong> Touch or click striker, pull backwards to aim and set power, then release to shoot!</li>
-                <li><strong>Coins & Points:</strong> White = 10 pts, Black = 5 pts, Red Queen = 25 pts.</li>
-            </ul>
+                <div class="turn-badge" id="turnStatus">P1 TURN</div>
+
+                <div class="player-card" id="p2Card">
+                    <span class="player-name" id="p2NameDisplay">Computer AI (Top)</span>
+                    <span class="player-score" id="p2Score">0</span>
+                </div>
+            </div>
+
+            <!-- Canvas Board -->
+            <div class="game-wrapper">
+                <canvas id="carromCanvas" width="500" height="500"></canvas>
+            </div>
+
+            <!-- Striker Baseline Position Slider & Controls -->
+            <div class="controls-panel">
+                <div class="slider-group">
+                    <span class="slider-label">Striker Baseline:</span>
+                    <input type="range" id="positionSlider" min="110" max="390" value="250">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="resetStriker()">📍 Center Striker</button>
+                    <button class="btn btn-primary" onclick="restartGame()">🔄 New Game</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -396,13 +780,16 @@
     <div class="modal-overlay" id="winnerModal">
         <div class="modal-card">
             <h2>🎉 Game Over!</h2>
-            <p id="winnerText">Player 1 Wins!</p>
-            <button class="btn btn-primary" onclick="restartGame()">Play Again</button>
+            <p id="winnerText">You Win!</p>
+            <div style="display:flex; gap:0.5rem; justify-content:center;">
+                <button class="btn btn-secondary" onclick="showDashboard()">Dashboard</button>
+                <button class="btn btn-primary" onclick="restartGame()">Play Again</button>
+            </div>
         </div>
     </div>
 
     <footer>
-        <p>&copy; Carrom Board Game. Local Multiplayer Web Edition.</p>
+        <p>&copy; Carrom Duel - Championship Edition</p>
     </footer>
 
     <script>
@@ -458,7 +845,65 @@
         function toggleAudio() {
             initAudio();
             soundEnabled = !soundEnabled;
-            document.getElementById('audioBtn').innerText = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+            document.getElementById('audioBtn').innerText = soundEnabled ? '🔊 ON' : '🔇 OFF';
+        }
+
+        // Dashboard Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function showDashboard() {
+            document.getElementById('dashboardView').style.display = 'flex';
+            document.getElementById('gameView').classList.remove('active');
+            document.getElementById('winnerModal').classList.remove('active');
+        }
+
+        // Active Game Mode
+        let gameMode = 'vs_computer'; // 'vs_computer', 'pass_play', 'practice'
+
+        function startGame(mode) {
+            gameMode = mode;
+            document.getElementById('dashboardView').style.display = 'none';
+            document.getElementById('gameView').classList.add('active');
+
+            if (mode === 'vs_computer') {
+                document.getElementById('p1NameDisplay').innerText = "You (Bottom)";
+                document.getElementById('p2NameDisplay').innerText = "Computer AI (Top)";
+            } else if (mode === 'pass_play') {
+                document.getElementById('p1NameDisplay').innerText = "Player 1 (Bottom)";
+                document.getElementById('p2NameDisplay').innerText = "Player 2 (Top)";
+            } else if (mode === 'practice') {
+                document.getElementById('p1NameDisplay').innerText = "Solo Practice";
+                document.getElementById('p2NameDisplay').innerText = "Targets";
+            }
+
+            restartGame();
+        }
+
+        // Theme Engine
+        let currentBoardTheme = {
+            wood: '#E6BA7E',
+            border: '#78350F'
+        };
+
+        function setBoardTheme(themeKey, el) {
+            document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            if (themeKey === 'wooden') {
+                currentBoardTheme = { wood: '#E6BA7E', border: '#78350F' };
+            } else if (themeKey === 'royal') {
+                currentBoardTheme = { wood: '#0D1B2A', border: '#E5A93C' };
+            } else if (themeKey === 'neon') {
+                currentBoardTheme = { wood: '#110022', border: '#FF0055' };
+            } else if (themeKey === 'carbon') {
+                currentBoardTheme = { wood: '#1C1C1E', border: '#444444' };
+            }
         }
 
         // Canvas Setup
@@ -482,6 +927,7 @@
         let striker = null;
         let turnHasPocketed = false;
         let isMoving = false;
+        let aiProcessing = false;
 
         const positionSlider = document.getElementById('positionSlider');
         const statusMsg = document.getElementById('statusMsg');
@@ -497,7 +943,6 @@
 
             draw() {
                 ctx.save();
-                // Chrome Outer Ring
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = '#FFFFFF';
@@ -506,18 +951,15 @@
                 ctx.strokeStyle = '#D97706';
                 ctx.stroke();
 
-                // Inner Color Core
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius * 0.65, 0, Math.PI * 2);
                 ctx.fillStyle = '#F59E0B';
                 ctx.fill();
 
-                // Tiny center dot
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius * 0.25, 0, Math.PI * 2);
                 ctx.fillStyle = '#DC2626';
                 ctx.fill();
-
                 ctx.restore();
             }
 
@@ -532,7 +974,6 @@
                     this.vy = 0;
                 }
 
-                // Board Limits Bounce
                 const min = FRAME_THICKNESS + this.radius;
                 const max = BOARD_SIZE - FRAME_THICKNESS - this.radius;
 
@@ -547,7 +988,7 @@
             constructor(x, y, type) {
                 this.x = x;
                 this.y = y;
-                this.type = type; // 'white', 'black', 'queen'
+                this.type = type;
                 this.radius = 12;
                 this.vx = 0;
                 this.vy = 0;
@@ -580,7 +1021,6 @@
                     ctx.stroke();
                 }
 
-                // Inner groove ring
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius * 0.45, 0, Math.PI * 2);
                 ctx.lineWidth = 1.5;
@@ -601,7 +1041,6 @@
                     this.vy = 0;
                 }
 
-                // Board Limits Bounce
                 const min = FRAME_THICKNESS + this.radius;
                 const max = BOARD_SIZE - FRAME_THICKNESS - this.radius;
 
@@ -612,17 +1051,14 @@
             }
         }
 
-        // Initialize Board Coins
         function setupCoins() {
             coins = [];
             const centerX = BOARD_SIZE / 2;
             const centerY = BOARD_SIZE / 2;
             const r = 12.5;
 
-            // Queen at center
             coins.push(new Coin(centerX, centerY, 'queen'));
 
-            // Inner Ring (6 coins)
             const innerAngles = [0, 60, 120, 180, 240, 300];
             const innerTypes = ['white', 'black', 'white', 'black', 'white', 'black'];
 
@@ -632,7 +1068,6 @@
                 coins.push(new Coin(centerX + Math.cos(rad) * dist, centerY + Math.sin(rad) * dist, innerTypes[i]));
             }
 
-            // Outer Ring (12 coins)
             const outerAngles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
             const outerTypes = ['black', 'white', 'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white', 'black', 'white'];
 
@@ -644,7 +1079,6 @@
         }
 
         function getBaselineY() {
-            // Player 1 at Bottom (Y = 425), Player 2 at Top (Y = 75)
             return currentPlayer === 1 ? (BOARD_SIZE - 75) : 75;
         }
 
@@ -659,11 +1093,12 @@
             p1Score = 0;
             p2Score = 0;
             currentPlayer = 1;
+            aiProcessing = false;
             setupCoins();
             positionSlider.value = 250;
             resetStriker();
             updateUI();
-            statusMsg.innerText = "Game restarted! Player 1's turn.";
+            statusMsg.innerText = "Match started! Your turn.";
         }
 
         function updateUI() {
@@ -679,19 +1114,18 @@
                 p1Card.classList.add('active');
                 p2Card.classList.remove('active');
             } else {
-                turnBadge.innerText = "P2 TURN";
+                turnBadge.innerText = gameMode === 'vs_computer' ? "BOT TURN" : "P2 TURN";
                 p2Card.classList.add('active');
                 p1Card.classList.remove('active');
             }
         }
 
         positionSlider.addEventListener('input', (e) => {
-            if (!isMoving && striker) {
+            if (!isMoving && striker && currentPlayer === 1) {
                 striker.x = parseFloat(e.target.value);
             }
         });
 
-        // Pockets
         const POCKETS = [
             { x: FRAME_THICKNESS + 12, y: FRAME_THICKNESS + 12 },
             { x: BOARD_SIZE - FRAME_THICKNESS - 12, y: FRAME_THICKNESS + 12 },
@@ -700,7 +1134,6 @@
         ];
 
         function checkPockets() {
-            // Check coins
             for (let coin of coins) {
                 if (coin.potted) continue;
                 for (let pocket of POCKETS) {
@@ -716,13 +1149,12 @@
                         if (currentPlayer === 1) p1Score += points;
                         else p2Score += points;
 
-                        statusMsg.innerText = `Player ${currentPlayer} pocketed ${coin.type.toUpperCase()} (+${points} pts)!`;
+                        statusMsg.innerText = `${currentPlayer === 1 ? 'You' : (gameMode === 'vs_computer' ? 'Computer AI' : 'P2')} pocketed ${coin.type.toUpperCase()} (+${points} pts)!`;
                         updateUI();
                     }
                 }
             }
 
-            // Check striker foul
             for (let pocket of POCKETS) {
                 const dist = Math.hypot(striker.x - pocket.x, striker.y - pocket.y);
                 if (dist < POCKET_RADIUS) {
@@ -741,7 +1173,6 @@
             }
         }
 
-        // Elastic Collision Resolution
         function resolveCollision(obj1, obj2) {
             const dx = obj2.x - obj1.x;
             const dy = obj2.y - obj1.y;
@@ -771,16 +1202,13 @@
         }
 
         function handleCollisions() {
-            // Multi-pass collision handling for smoother physics
             for (let pass = 0; pass < 2; pass++) {
-                // Striker vs Coins
                 for (let coin of coins) {
                     if (!coin.potted) {
                         resolveCollision(striker, coin);
                     }
                 }
 
-                // Coins vs Coins
                 for (let i = 0; i < coins.length; i++) {
                     for (let j = i + 1; j < coins.length; j++) {
                         if (!coins[i].potted && !coins[j].potted) {
@@ -791,24 +1219,19 @@
             }
         }
 
-        // Draw Board Background Graphics
         function drawBoard() {
             ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
 
-            // Wood Frame Outer
-            ctx.fillStyle = '#5A2A0C';
+            ctx.fillStyle = currentBoardTheme.border;
             ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
 
-            // Playable Wood Area
-            ctx.fillStyle = '#EBC999';
+            ctx.fillStyle = currentBoardTheme.wood;
             ctx.fillRect(FRAME_THICKNESS, FRAME_THICKNESS, BOARD_SIZE - FRAME_THICKNESS * 2, BOARD_SIZE - FRAME_THICKNESS * 2);
 
-            // Inner Frame Border Line
-            ctx.strokeStyle = '#78350F';
+            ctx.strokeStyle = currentBoardTheme.border;
             ctx.lineWidth = 3;
             ctx.strokeRect(FRAME_THICKNESS, FRAME_THICKNESS, BOARD_SIZE - FRAME_THICKNESS * 2, BOARD_SIZE - FRAME_THICKNESS * 2);
 
-            // Pockets
             POCKETS.forEach(p => {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI * 2);
@@ -821,7 +1244,6 @@
 
             const center = BOARD_SIZE / 2;
 
-            // Center Circles
             ctx.beginPath();
             ctx.arc(center, center, 42, 0, Math.PI * 2);
             ctx.strokeStyle = '#9A3412';
@@ -833,17 +1255,14 @@
             ctx.fillStyle = '#EF4444';
             ctx.fill();
 
-            // Baseline for Player 1 (Bottom, Y = 425)
-            drawBaseline(BOARD_SIZE - 75, false);
-            // Baseline for Player 2 (Top, Y = 75)
-            drawBaseline(75, true);
+            drawBaseline(BOARD_SIZE - 75);
+            drawBaseline(75);
         }
 
-        function drawBaseline(y, isTop) {
+        function drawBaseline(y) {
             const minX = 110;
             const maxX = 390;
 
-            // Double baseline
             ctx.strokeStyle = '#9A3412';
             ctx.lineWidth = 1.5;
 
@@ -857,7 +1276,6 @@
             ctx.lineTo(maxX, y + 4);
             ctx.stroke();
 
-            // End Red Circles
             [minX, maxX].forEach(x => {
                 ctx.beginPath();
                 ctx.arc(x, y, 9, 0, Math.PI * 2);
@@ -868,7 +1286,6 @@
             });
         }
 
-        // Mouse & Touch Coordinates Mapper
         function getCanvasCoords(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -883,11 +1300,10 @@
 
         function onStart(e) {
             initAudio();
-            if (isMoving) return;
+            if (isMoving || (gameMode === 'vs_computer' && currentPlayer === 2)) return;
             const coords = getCanvasCoords(e);
             const dist = Math.hypot(coords.x - striker.x, coords.y - striker.y);
 
-            // Generous touch hit-box (radius * 3 or 50px min)
             if (dist < Math.max(striker.radius * 3, 50)) {
                 isAiming = true;
                 aimStart = { x: striker.x, y: striker.y };
@@ -915,7 +1331,7 @@
                 isMoving = true;
                 turnHasPocketed = false;
                 playHitSound(0.4, 500);
-                statusMsg.innerText = "Shot launched!";
+                statusMsg.innerText = "Shot fired!";
             }
         }
 
@@ -927,11 +1343,76 @@
         canvas.addEventListener('touchmove', onMove, { passive: true });
         window.addEventListener('touchend', onEnd);
 
+        // Computer AI Logic
+        function triggerComputerAiTurn() {
+            if (aiProcessing || isMoving || currentPlayer !== 2) return;
+            aiProcessing = true;
+            statusMsg.innerText = "🤖 Computer AI is aiming...";
+
+            setTimeout(() => {
+                const unpotted = coins.filter(c => !c.potted);
+                if (unpotted.length === 0) {
+                    aiProcessing = false;
+                    return;
+                }
+
+                // AI finds target coin & pocket
+                let bestCoin = unpotted[0];
+                let bestPocket = POCKETS[2]; // Bottom left
+                let minDist = 99999;
+
+                for (let coin of unpotted) {
+                    for (let p of POCKETS) {
+                        let d = Math.hypot(coin.x - p.x, coin.y - p.y);
+                        if (d < minDist) {
+                            minDist = d;
+                            bestCoin = coin;
+                            bestPocket = p;
+                        }
+                    }
+                }
+
+                // Position striker along top baseline
+                const pdx = bestPocket.x - bestCoin.x;
+                const pdy = bestPocket.y - bestCoin.y;
+                const pdist = Math.hypot(pdx, pdy) || 1;
+
+                const targetX = bestCoin.x - (pdx / pdist) * 30;
+                const strikerX = Math.min(390, Math.max(110, targetX));
+                
+                striker.x = strikerX;
+                striker.y = 75;
+
+                const dx = targetX - striker.x;
+                const dy = (bestCoin.y - (pdy / pdist) * 30) - striker.y;
+                const dist = Math.hypot(dx, dy) || 1;
+
+                setTimeout(() => {
+                    const power = 13 + Math.random() * 3;
+                    striker.vx = (dx / dist) * power;
+                    striker.vy = (dy / dist) * power;
+                    isMoving = true;
+                    turnHasPocketed = false;
+                    playHitSound(0.4, 500);
+                    statusMsg.innerText = "🤖 Computer AI shot!";
+                    aiProcessing = false;
+                }, 500);
+
+            }, 800);
+        }
+
         function checkGameOver() {
             const unpotted = coins.filter(c => !c.potted);
             if (unpotted.length === 0) {
-                const winner = p1Score > p2Score ? "Player 1 Wins!" : (p2Score > p1Score ? "Player 2 Wins!" : "Match Draw!");
-                document.getElementById('winnerText').innerText = `${winner} (${p1Score} vs ${p2Score} Pts)`;
+                let winnerText = "";
+                if (p1Score > p2Score) {
+                    winnerText = "You Win!";
+                } else if (p2Score > p1Score) {
+                    winnerText = gameMode === 'vs_computer' ? "Computer AI Wins!" : "Player 2 Wins!";
+                } else {
+                    winnerText = "Match Draw!";
+                }
+                document.getElementById('winnerText').innerText = `${winnerText} (${p1Score} - ${p2Score} pts)`;
                 document.getElementById('winnerModal').classList.add('active');
             }
         }
@@ -962,7 +1443,6 @@
 
             striker.draw();
 
-            // Draw Aiming Line
             if (isAiming) {
                 ctx.save();
                 ctx.beginPath();
@@ -975,7 +1455,6 @@
                 ctx.setLineDash([6, 6]);
                 ctx.stroke();
 
-                // Pull circle
                 ctx.beginPath();
                 ctx.arc(aimCurrent.x, aimCurrent.y, 9, 0, Math.PI * 2);
                 ctx.fillStyle = '#EF4444';
@@ -983,20 +1462,24 @@
                 ctx.restore();
             }
 
-            // Check turn completion
             if (isMoving && movingCount === 0) {
                 isMoving = false;
 
-                if (!turnHasPocketed) {
+                if (!turnHasPocketed && gameMode !== 'practice') {
                     currentPlayer = currentPlayer === 1 ? 2 : 1;
-                    statusMsg.innerText = `Turn switched to Player ${currentPlayer}!`;
+                    statusMsg.innerText = currentPlayer === 1 ? "Your Turn!" : (gameMode === 'vs_computer' ? "Computer AI Turn!" : "Player 2 Turn!");
                 } else {
-                    statusMsg.innerText = `Player ${currentPlayer} gets another shot!`;
+                    statusMsg.innerText = `${currentPlayer === 1 ? 'You' : 'Player 2'} get another shot!`;
                 }
 
                 resetStriker();
                 updateUI();
                 checkGameOver();
+            }
+
+            // Trigger AI Computer Turn if needed
+            if (gameMode === 'vs_computer' && currentPlayer === 2 && !isMoving && !aiProcessing) {
+                triggerComputerAiTurn();
             }
 
             requestAnimationFrame(gameLoop);
