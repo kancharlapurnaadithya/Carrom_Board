@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Carrom Board Game - Play Online on GitHub Pages</title>
     <meta name="description" content="Play Carrom Board Game directly in your web browser! Feature-rich multiplayer game with realistic physics, striker aiming, coins, pockets, and score tracking.">
     <style>
@@ -25,6 +25,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            touch-action: manipulation;
         }
 
         body {
@@ -34,13 +35,14 @@
             flex-direction: column;
             min-height: 100vh;
             align-items: center;
+            overflow-x: hidden;
         }
 
         header {
             width: 100%;
             background-color: var(--card-bg);
             border-bottom: 1px solid var(--border-color);
-            padding: 1rem 1.5rem;
+            padding: 0.85rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -51,21 +53,21 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 800;
             color: var(--accent-color);
         }
 
         .logo-icon {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             background: linear-gradient(135deg, #F59E0B, #D97706);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--bg-color);
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
         }
 
@@ -73,10 +75,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1rem;
-            padding: 1rem;
+            gap: 0.85rem;
+            padding: 0.75rem;
             width: 100%;
-            max-width: 900px;
+            max-width: 520px;
         }
 
         .scoreboard {
@@ -84,10 +86,9 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            max-width: 520px;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            padding: 0.75rem 1.25rem;
+            padding: 0.6rem 1rem;
             border-radius: 0.75rem;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
@@ -96,8 +97,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.2rem;
-            padding: 0.4rem 0.8rem;
+            gap: 0.1rem;
+            padding: 0.3rem 0.7rem;
             border-radius: 0.5rem;
             transition: all 0.2s ease;
         }
@@ -108,7 +109,7 @@
         }
 
         .player-name {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: var(--text-secondary);
         }
@@ -118,7 +119,7 @@
         }
 
         .player-score {
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             font-weight: 800;
             color: var(--text-primary);
         }
@@ -126,10 +127,10 @@
         .turn-badge {
             background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
             color: #000;
-            padding: 0.35rem 0.85rem;
+            padding: 0.3rem 0.75rem;
             border-radius: 2rem;
-            font-size: 0.85rem;
-            font-weight: 700;
+            font-size: 0.8rem;
+            font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -139,18 +140,19 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.75rem;
             width: 100%;
         }
 
         #carromCanvas {
             background-color: var(--board-wood);
-            border-radius: 16px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 0, 0, 0.4);
             cursor: pointer;
             touch-action: none;
-            max-width: 100%;
+            width: 100%;
+            max-width: 500px;
             height: auto;
+            aspect-ratio: 1 / 1;
         }
 
         .controls-panel {
@@ -159,31 +161,30 @@
             align-items: center;
             gap: 0.6rem;
             width: 100%;
-            max-width: 520px;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            padding: 0.85rem 1.25rem;
+            padding: 0.75rem 1rem;
             border-radius: 0.75rem;
         }
 
         .slider-group {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
             width: 100%;
         }
 
         .slider-label {
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.8rem;
+            font-weight: 700;
             color: var(--text-secondary);
             white-space: nowrap;
         }
 
         input[type=range] {
             flex: 1;
-            height: 8px;
-            border-radius: 4px;
+            height: 10px;
+            border-radius: 5px;
             background: var(--border-color);
             outline: none;
             accent-color: var(--accent-color);
@@ -192,7 +193,7 @@
 
         .btn-group {
             display: flex;
-            gap: 0.75rem;
+            gap: 0.6rem;
             width: 100%;
             justify-content: center;
         }
@@ -201,10 +202,10 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            padding: 0.6rem 1.25rem;
+            gap: 0.4rem;
+            padding: 0.55rem 1.1rem;
             border-radius: 0.5rem;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 700;
             border: none;
             cursor: pointer;
@@ -235,49 +236,97 @@
             color: var(--accent-color);
         }
 
+        .status-msg {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            min-height: 1.2rem;
+            text-align: center;
+        }
+
         .instructions {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 0.75rem;
-            padding: 1rem 1.25rem;
+            padding: 0.85rem 1rem;
             width: 100%;
-            max-width: 520px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: var(--text-secondary);
-            line-height: 1.5;
+            line-height: 1.45;
         }
 
         .instructions h4 {
             color: var(--text-primary);
-            margin-bottom: 0.4rem;
-            font-size: 0.95rem;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
         }
 
         .instructions ul {
-            padding-left: 1.2rem;
+            padding-left: 1.1rem;
         }
 
         .instructions li {
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.2rem;
+        }
+
+        /* Winner Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: var(--card-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            max-width: 90%;
+            width: 360px;
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+        }
+
+        .modal-card h2 {
+            font-size: 1.8rem;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-card p {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
         }
 
         footer {
             margin-top: auto;
             width: 100%;
-            padding: 1.5rem;
+            padding: 1rem;
             text-align: center;
             color: var(--text-secondary);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             border-top: 1px solid var(--border-color);
             background-color: var(--card-bg);
         }
 
         @media (max-width: 560px) {
             header {
-                padding: 0.8rem 1rem;
+                padding: 0.75rem 1rem;
             }
             .logo {
-                font-size: 1.2rem;
+                font-size: 1.15rem;
             }
             .main-container {
                 padding: 0.5rem;
@@ -311,6 +360,9 @@
             </div>
         </div>
 
+        <!-- Status Message Banner -->
+        <div class="status-msg" id="statusMsg">Drag slider to position striker, then pull back to strike!</div>
+
         <!-- Canvas Board -->
         <div class="game-wrapper">
             <canvas id="carromCanvas" width="500" height="500"></canvas>
@@ -319,8 +371,8 @@
         <!-- Striker Baseline Position Slider & Controls -->
         <div class="controls-panel">
             <div class="slider-group">
-                <span class="slider-label">Striker Position:</span>
-                <input type="range" id="positionSlider" min="100" max="400" value="250">
+                <span class="slider-label">Striker Baseline:</span>
+                <input type="range" id="positionSlider" min="110" max="390" value="250">
             </div>
 
             <div class="btn-group">
@@ -331,28 +383,46 @@
 
         <!-- Quick Instructions -->
         <div class="instructions">
-            <h4>🎯 How to Play:</h4>
+            <h4>🎯 Controls & Rules:</h4>
             <ul>
-                <li><strong>Position Striker:</strong> Drag the slider above or drag the striker along the baseline.</li>
-                <li><strong>Aim & Strike:</strong> Click/Touch the striker, drag backwards to set power & angle, then release!</li>
-                <li><strong>Scoring:</strong> White Coins = 10 Pts, Black Coins = 5 Pts, Red Queen = 25 Pts.</li>
+                <li><strong>Position Striker:</strong> Adjust slider to move striker along your baseline.</li>
+                <li><strong>Aim & Strike:</strong> Touch or click striker, pull backwards to aim and set power, then release to shoot!</li>
+                <li><strong>Coins & Points:</strong> White = 10 pts, Black = 5 pts, Red Queen = 25 pts.</li>
             </ul>
         </div>
     </div>
 
+    <!-- Winner Modal -->
+    <div class="modal-overlay" id="winnerModal">
+        <div class="modal-card">
+            <h2>🎉 Game Over!</h2>
+            <p id="winnerText">Player 1 Wins!</p>
+            <button class="btn btn-primary" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
     <footer>
-        <p>&copy; Carrom Board Game. Playable on GitHub Pages.</p>
+        <p>&copy; Carrom Board Game. Local Multiplayer Web Edition.</p>
     </footer>
 
     <script>
-        // Web Audio API Sound Synthesizer
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Web Audio Synthesizer
+        let audioCtx = null;
         let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
 
         function playHitSound(volume = 0.3, pitch = 400) {
             if (!soundEnabled) return;
             try {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
+                initAudio();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
@@ -370,12 +440,12 @@
         function playPocketSound() {
             if (!soundEnabled) return;
             try {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
+                initAudio();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(250, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.15);
+                osc.frequency.exponentialRampToValueAtTime(650, audioCtx.currentTime + 0.15);
                 gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
                 osc.connect(gain);
@@ -386,11 +456,12 @@
         }
 
         function toggleAudio() {
+            initAudio();
             soundEnabled = !soundEnabled;
             document.getElementById('audioBtn').innerText = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
         }
 
-        // Carrom Canvas Logic
+        // Canvas Setup
         const canvas = document.getElementById('carromCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -401,7 +472,7 @@
         const RESTITUTION = 0.88;
 
         // Game State
-        let currentPlayer = 1; // 1 = Bottom, 2 = Top
+        let currentPlayer = 1; // 1 = Bottom (Y = 425), 2 = Top (Y = 75)
         let p1Score = 0;
         let p2Score = 0;
         let isAiming = false;
@@ -413,6 +484,7 @@
         let isMoving = false;
 
         const positionSlider = document.getElementById('positionSlider');
+        const statusMsg = document.getElementById('statusMsg');
 
         class Striker {
             constructor(x, y) {
@@ -421,25 +493,31 @@
                 this.radius = 17;
                 this.vx = 0;
                 this.vy = 0;
-                this.color = '#F59E0B';
             }
 
             draw() {
                 ctx.save();
-                // Outer ring
+                // Chrome Outer Ring
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = '#FFF';
+                ctx.fillStyle = '#FFFFFF';
                 ctx.fill();
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = '#D97706';
                 ctx.stroke();
 
-                // Inner circle
+                // Inner Color Core
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.radius * 0.65, 0, Math.PI * 2);
                 ctx.fillStyle = '#F59E0B';
                 ctx.fill();
+
+                // Tiny center dot
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 0.25, 0, Math.PI * 2);
+                ctx.fillStyle = '#DC2626';
+                ctx.fill();
+
                 ctx.restore();
             }
 
@@ -454,7 +532,7 @@
                     this.vy = 0;
                 }
 
-                // Wall Collisions
+                // Board Limits Bounce
                 const min = FRAME_THICKNESS + this.radius;
                 const max = BOARD_SIZE - FRAME_THICKNESS - this.radius;
 
@@ -502,9 +580,9 @@
                     ctx.stroke();
                 }
 
-                // Inner ring
+                // Inner groove ring
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius * 0.4, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.radius * 0.45, 0, Math.PI * 2);
                 ctx.lineWidth = 1.5;
                 ctx.strokeStyle = this.type === 'black' ? '#94A3B8' : (this.type === 'queen' ? '#FEE2E2' : '#D97706');
                 ctx.stroke();
@@ -523,7 +601,7 @@
                     this.vy = 0;
                 }
 
-                // Wall Collisions
+                // Board Limits Bounce
                 const min = FRAME_THICKNESS + this.radius;
                 const max = BOARD_SIZE - FRAME_THICKNESS - this.radius;
 
@@ -534,23 +612,23 @@
             }
         }
 
-        // Initialize Board Coins Setup
+        // Initialize Board Coins
         function setupCoins() {
             coins = [];
             const centerX = BOARD_SIZE / 2;
             const centerY = BOARD_SIZE / 2;
-            const r = 13;
+            const r = 12.5;
 
-            // Queen in center
+            // Queen at center
             coins.push(new Coin(centerX, centerY, 'queen'));
 
-            // Inner Ring (6 coins: 3 white, 3 black alternating)
+            // Inner Ring (6 coins)
             const innerAngles = [0, 60, 120, 180, 240, 300];
             const innerTypes = ['white', 'black', 'white', 'black', 'white', 'black'];
 
             for (let i = 0; i < 6; i++) {
                 const rad = (innerAngles[i] * Math.PI) / 180;
-                const dist = r * 2;
+                const dist = r * 2.05;
                 coins.push(new Coin(centerX + Math.cos(rad) * dist, centerY + Math.sin(rad) * dist, innerTypes[i]));
             }
 
@@ -560,13 +638,14 @@
 
             for (let i = 0; i < 12; i++) {
                 const rad = (outerAngles[i] * Math.PI) / 180;
-                const dist = r * 3.8;
+                const dist = r * 4.1;
                 coins.push(new Coin(centerX + Math.cos(rad) * dist, centerY + Math.sin(rad) * dist, outerTypes[i]));
             }
         }
 
         function getBaselineY() {
-            return currentPlayer === 1 ? BOARD_SIZE - 75 : 75;
+            // Player 1 at Bottom (Y = 425), Player 2 at Top (Y = 75)
+            return currentPlayer === 1 ? (BOARD_SIZE - 75) : 75;
         }
 
         function resetStriker() {
@@ -576,6 +655,7 @@
         }
 
         function restartGame() {
+            document.getElementById('winnerModal').classList.remove('active');
             p1Score = 0;
             p2Score = 0;
             currentPlayer = 1;
@@ -583,6 +663,7 @@
             positionSlider.value = 250;
             resetStriker();
             updateUI();
+            statusMsg.innerText = "Game restarted! Player 1's turn.";
         }
 
         function updateUI() {
@@ -610,7 +691,7 @@
             }
         });
 
-        // Pockets positions
+        // Pockets
         const POCKETS = [
             { x: FRAME_THICKNESS + 12, y: FRAME_THICKNESS + 12 },
             { x: BOARD_SIZE - FRAME_THICKNESS - 12, y: FRAME_THICKNESS + 12 },
@@ -619,7 +700,7 @@
         ];
 
         function checkPockets() {
-            // Check coins in pockets
+            // Check coins
             for (let coin of coins) {
                 if (coin.potted) continue;
                 for (let pocket of POCKETS) {
@@ -631,26 +712,27 @@
                         playPocketSound();
                         turnHasPocketed = true;
 
-                        // Add score
                         let points = coin.type === 'white' ? 10 : (coin.type === 'black' ? 5 : 25);
                         if (currentPlayer === 1) p1Score += points;
                         else p2Score += points;
+
+                        statusMsg.innerText = `Player ${currentPlayer} pocketed ${coin.type.toUpperCase()} (+${points} pts)!`;
                         updateUI();
                     }
                 }
             }
 
-            // Check striker in pocket
+            // Check striker foul
             for (let pocket of POCKETS) {
                 const dist = Math.hypot(striker.x - pocket.x, striker.y - pocket.y);
                 if (dist < POCKET_RADIUS) {
                     playPocketSound();
-                    // Foul: deduct score
                     if (currentPlayer === 1) p1Score = Math.max(0, p1Score - 5);
                     else p2Score = Math.max(0, p2Score - 5);
+
+                    statusMsg.innerText = `FOUL! Striker pocketed (-5 pts).`;
                     updateUI();
 
-                    // Reset striker
                     striker.vx = 0;
                     striker.vy = 0;
                     resetStriker();
@@ -659,16 +741,15 @@
             }
         }
 
-        // Handle Circular Elastic Collisions
+        // Elastic Collision Resolution
         function resolveCollision(obj1, obj2) {
             const dx = obj2.x - obj1.x;
             const dy = obj2.y - obj1.y;
             const distance = Math.hypot(dx, dy);
 
             if (distance < obj1.radius + obj2.radius) {
-                playHitSound(0.25, 450);
+                playHitSound(0.2, 450);
 
-                // Overlap resolution
                 const overlap = (obj1.radius + obj2.radius) - distance;
                 const nx = dx / (distance || 1);
                 const ny = dy / (distance || 1);
@@ -678,7 +759,6 @@
                 obj2.x += nx * overlap * 0.5;
                 obj2.y += ny * overlap * 0.5;
 
-                // Elastic collision velocity response
                 const kx = obj1.vx - obj2.vx;
                 const ky = obj1.vy - obj2.vy;
                 const p = 2 * (nx * kx + ny * ky) / 2;
@@ -691,18 +771,21 @@
         }
 
         function handleCollisions() {
-            // Striker vs Coins
-            for (let coin of coins) {
-                if (!coin.potted) {
-                    resolveCollision(striker, coin);
+            // Multi-pass collision handling for smoother physics
+            for (let pass = 0; pass < 2; pass++) {
+                // Striker vs Coins
+                for (let coin of coins) {
+                    if (!coin.potted) {
+                        resolveCollision(striker, coin);
+                    }
                 }
-            }
 
-            // Coins vs Coins
-            for (let i = 0; i < coins.length; i++) {
-                for (let j = i + 1; j < coins.length; j++) {
-                    if (!coins[i].potted && !coins[j].potted) {
-                        resolveCollision(coins[i], coins[j]);
+                // Coins vs Coins
+                for (let i = 0; i < coins.length; i++) {
+                    for (let j = i + 1; j < coins.length; j++) {
+                        if (!coins[i].potted && !coins[j].potted) {
+                            resolveCollision(coins[i], coins[j]);
+                        }
                     }
                 }
             }
@@ -725,7 +808,7 @@
             ctx.lineWidth = 3;
             ctx.strokeRect(FRAME_THICKNESS, FRAME_THICKNESS, BOARD_SIZE - FRAME_THICKNESS * 2, BOARD_SIZE - FRAME_THICKNESS * 2);
 
-            // Pockets (4 corners)
+            // Pockets
             POCKETS.forEach(p => {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI * 2);
@@ -740,7 +823,7 @@
 
             // Center Circles
             ctx.beginPath();
-            ctx.arc(center, center, 40, 0, Math.PI * 2);
+            ctx.arc(center, center, 42, 0, Math.PI * 2);
             ctx.strokeStyle = '#9A3412';
             ctx.lineWidth = 2;
             ctx.stroke();
@@ -750,17 +833,17 @@
             ctx.fillStyle = '#EF4444';
             ctx.fill();
 
-            // Baseline & Circles for Player 1 (Bottom)
-            drawBaseline(75, false);
-            // Baseline & Circles for Player 2 (Top)
-            drawBaseline(BOARD_SIZE - 75, true);
+            // Baseline for Player 1 (Bottom, Y = 425)
+            drawBaseline(BOARD_SIZE - 75, false);
+            // Baseline for Player 2 (Top, Y = 75)
+            drawBaseline(75, true);
         }
 
         function drawBaseline(y, isTop) {
-            const minX = 100;
-            const maxX = 400;
+            const minX = 110;
+            const maxX = 390;
 
-            // Double line
+            // Double baseline
             ctx.strokeStyle = '#9A3412';
             ctx.lineWidth = 1.5;
 
@@ -785,7 +868,7 @@
             });
         }
 
-        // Touch & Mouse Input Handlers for Striker Drag & Aim
+        // Mouse & Touch Coordinates Mapper
         function getCanvasCoords(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -799,11 +882,13 @@
         }
 
         function onStart(e) {
+            initAudio();
             if (isMoving) return;
             const coords = getCanvasCoords(e);
             const dist = Math.hypot(coords.x - striker.x, coords.y - striker.y);
 
-            if (dist < striker.radius * 2) {
+            // Generous touch hit-box (radius * 3 or 50px min)
+            if (dist < Math.max(striker.radius * 3, 50)) {
                 isAiming = true;
                 aimStart = { x: striker.x, y: striker.y };
                 aimCurrent = coords;
@@ -830,6 +915,7 @@
                 isMoving = true;
                 turnHasPocketed = false;
                 playHitSound(0.4, 500);
+                statusMsg.innerText = "Shot launched!";
             }
         }
 
@@ -841,11 +927,19 @@
         canvas.addEventListener('touchmove', onMove, { passive: true });
         window.addEventListener('touchend', onEnd);
 
-        // Main Game Loop
+        function checkGameOver() {
+            const unpotted = coins.filter(c => !c.potted);
+            if (unpotted.length === 0) {
+                const winner = p1Score > p2Score ? "Player 1 Wins!" : (p2Score > p1Score ? "Player 2 Wins!" : "Match Draw!");
+                document.getElementById('winnerText').innerText = `${winner} (${p1Score} vs ${p2Score} Pts)`;
+                document.getElementById('winnerModal').classList.add('active');
+            }
+        }
+
+        // Main Loop
         function gameLoop() {
             drawBoard();
 
-            // Update physics if moving
             let movingCount = 0;
 
             if (striker.vx !== 0 || striker.vy !== 0) {
@@ -868,7 +962,7 @@
 
             striker.draw();
 
-            // Draw Aiming Trajectory Line
+            // Draw Aiming Line
             if (isAiming) {
                 ctx.save();
                 ctx.beginPath();
@@ -876,35 +970,39 @@
                 const dx = aimStart.x - aimCurrent.x;
                 const dy = aimStart.y - aimCurrent.y;
                 ctx.lineTo(striker.x + dx * 2, striker.y + dy * 2);
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 3.5;
                 ctx.strokeStyle = '#22C55E';
                 ctx.setLineDash([6, 6]);
                 ctx.stroke();
 
-                // Pullback force circle
+                // Pull circle
                 ctx.beginPath();
-                ctx.arc(aimCurrent.x, aimCurrent.y, 8, 0, Math.PI * 2);
+                ctx.arc(aimCurrent.x, aimCurrent.y, 9, 0, Math.PI * 2);
                 ctx.fillStyle = '#EF4444';
                 ctx.fill();
                 ctx.restore();
             }
 
-            // Check if turn ended (all elements stopped)
+            // Check turn completion
             if (isMoving && movingCount === 0) {
                 isMoving = false;
 
-                // Switch turn if no coin was pocketed
                 if (!turnHasPocketed) {
                     currentPlayer = currentPlayer === 1 ? 2 : 1;
+                    statusMsg.innerText = `Turn switched to Player ${currentPlayer}!`;
+                } else {
+                    statusMsg.innerText = `Player ${currentPlayer} gets another shot!`;
                 }
+
                 resetStriker();
                 updateUI();
+                checkGameOver();
             }
 
             requestAnimationFrame(gameLoop);
         }
 
-        // Start initial game state
+        // Init Game
         setupCoins();
         resetStriker();
         updateUI();
