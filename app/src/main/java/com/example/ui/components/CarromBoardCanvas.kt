@@ -273,13 +273,35 @@ fun CarromBoardCanvas(
                 }
             }
 
-            // 6. Draw Particle effects
+            // 6. Draw Particle effects with glowing aura & crisp highlight core
             for (p in engine.particles) {
+                val px = p.x * scaleX
+                val py = p.y * scaleY
+                val baseRadius = p.size * avgScale / 2.2f
+                val clampedAlpha = p.alpha.coerceIn(0f, 1f)
+
+                // Outer soft glowing aura
                 drawCircle(
-                    color = p.color.copy(alpha = p.alpha),
-                    radius = p.size * avgScale / 2.5f,
-                    center = Offset(p.x * scaleX, p.y * scaleY)
+                    color = p.color.copy(alpha = (clampedAlpha * 0.35f).coerceIn(0f, 1f)),
+                    radius = baseRadius * 1.8f,
+                    center = Offset(px, py)
                 )
+
+                // Core colored spark
+                drawCircle(
+                    color = p.color.copy(alpha = clampedAlpha),
+                    radius = baseRadius,
+                    center = Offset(px, py)
+                )
+
+                // Inner bright white highlight core for extra brilliance
+                if (clampedAlpha > 0.35f) {
+                    drawCircle(
+                        color = Color.White.copy(alpha = (clampedAlpha * 0.85f).coerceIn(0f, 1f)),
+                        radius = (baseRadius * 0.45f).coerceAtLeast(1f),
+                        center = Offset(px, py)
+                    )
+                }
             }
         }
     }

@@ -390,8 +390,9 @@ class CarromEngine(
                     if (dist < POCKET_RADIUS) {
                         coin.vx = 0f
                         coin.vy = 0f
-                        // Start shrinking animation
+                        // Start shrinking animation & spawn burst of colored particles
                         coin.scale = 0.99f // Flag that it is shrinking
+                        triggerPocketBurst(pocket.x, pocket.y, coin.type)
                         Log.d("Carrom", "Coin ${coin.id} (${coin.type}) sinking in pocket!")
                     }
                 }
@@ -419,6 +420,7 @@ class CarromEngine(
         playerPocketedAnyThisTurn = true
 
         val coinColor = getCoinColorForTheme(coin.type)
+        triggerPocketBurst(coin.x, coin.y, coin.type)
         triggerStreakParticles(coin.x, coin.y, coinColor)
 
         // Rule assessment
@@ -600,11 +602,65 @@ class CarromEngine(
         return Pair(strikerX, PhysicsVector(vx, vy))
     }
 
+    fun triggerPocketBurst(px: Float, py: Float, coinType: CoinType) {
+        val particleCount = if (coinType == CoinType.QUEEN) 48 else 36
+        val palette = when (coinType) {
+            CoinType.WHITE -> listOf(
+                Color(0xFFFFD700), // Bright Gold
+                Color(0xFFFFF8E7), // Warm Pearl White
+                Color(0xFF00E5FF), // Electric Cyan
+                Color(0xFFFFEA00), // Vibrant Yellow
+                Color(0xFFFF9100)  // Vivid Amber
+            )
+            CoinType.BLACK -> listOf(
+                Color(0xFFE0E0E0), // Platinum Silver
+                Color(0xFFFF6D00), // Electric Orange
+                Color(0xFFAA00FF), // Neon Purple
+                Color(0xFFFFAB00), // Golden Amber
+                Color(0xFF00E676)  // Bright Emerald
+            )
+            CoinType.QUEEN -> listOf(
+                Color(0xFFFF1744), // Royal Crimson
+                Color(0xFFFFD700), // Bright Gold
+                Color(0xFFD500F9), // Pure Magenta
+                Color(0xFFFFEA00), // Radiant Yellow
+                Color(0xFFFFFFFF)  // Pure White
+            )
+            else -> listOf(
+                Color(0xFFFF1744), // Red Foul
+                Color(0xFFFF3D00),
+                Color(0xFFFFEA00)
+            )
+        }
+
+        for (i in 0 until particleCount) {
+            val angle = (Math.random() * 2.0 * Math.PI).toFloat()
+            val speed = (3f + Math.random() * 11f).toFloat()
+            val color = palette[(Math.random() * palette.size).toInt()]
+            val size = (5f + Math.random() * 10f).toFloat()
+            val decay = (0.015f + Math.random() * 0.035f).toFloat()
+
+            particles.add(
+                Particle(
+                    x = px,
+                    y = py,
+                    vx = cos(angle) * speed,
+                    vy = sin(angle) * speed,
+                    color = color,
+                    alpha = 1.0f,
+                    size = size,
+                    life = 1.0f,
+                    decay = decay
+                )
+            )
+        }
+    }
+
     fun triggerStreakParticles(px: Float, py: Float, color: Color) {
-        val count = 25
+        val count = 28
         for (i in 0 until count) {
             val angle = (Math.random() * 2.0 * Math.PI).toFloat()
-            val speed = (2f + Math.random() * 8f).toFloat()
+            val speed = (2.5f + Math.random() * 8.5f).toFloat()
             particles.add(
                 Particle(
                     x = px,
@@ -629,8 +685,8 @@ class CarromEngine(
             p.y += p.vy
             p.alpha -= p.decay
             p.life -= p.decay
-            p.vx *= 0.95f
-            p.vy *= 0.95f
+            p.vx *= 0.93f // Smooth atmospheric drag deceleration
+            p.vy *= 0.93f
             if (p.life <= 0f || p.alpha <= 0f) {
                 iterator.remove()
             }
