@@ -253,8 +253,13 @@ fun GameScreen(
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
                     .padding(top = 110.dp, start = 20.dp, end = 20.dp)
-                    .background(SleekAmber, shape = MaterialTheme.shapes.medium)
-                    .border(1.dp, Color.White.copy(alpha = 0.5f), shape = MaterialTheme.shapes.medium)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(Color(0xFFE53935), Color(0xFFFFB300))
+                        ),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    .border(1.dp, Color.White.copy(alpha = 0.6f), shape = MaterialTheme.shapes.medium)
             ) {
                 Row(
                     modifier = Modifier.padding(10.dp),
@@ -263,13 +268,13 @@ fun GameScreen(
                     Icon(
                         imageVector = Icons.Default.EmojiEvents,
                         contentDescription = null,
-                        tint = Color.Black,
+                        tint = Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        "QUEEN COVER ACTIVE: ${qPlayer?.name ?: ""} must pocket ANY coin next shot to claim +25 pts!",
-                        color = Color.Black,
+                        "👑 QUEEN COVER ACTIVE: ${qPlayer?.name ?: ""} must pocket a coin next for DOUBLE POINTS & +25 pts Queen Bonus!",
+                        color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )

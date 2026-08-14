@@ -271,7 +271,7 @@ fun MainMenuScreen(
                 // 1. PLAY VS COMPUTER
                 MenuItemButton(
                     title = "PLAY VS COMPUTER",
-                    subtitle = "Challenge smart Carrom AI Bot",
+                    subtitle = "Challenge ${viewModel.aiDifficulty.displayName} AI Bot",
                     icon = Icons.Filled.SmartToy,
                     glowColor = SleekOrange,
                     onClick = {

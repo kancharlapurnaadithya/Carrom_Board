@@ -14,95 +14,62 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 object SoundManager {
+    @Volatile
     private var toneGenerator: ToneGenerator? = null
     var isSoundEnabled = true
     var isMusicEnabled = true
     var isVibrationEnabled = true
 
-    init {
+    private fun getToneGen(): ToneGenerator? {
+        if (toneGenerator == null) {
+            synchronized(this) {
+                if (toneGenerator == null) {
+                    try {
+                        toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 70)
+                    } catch (e: Exception) {
+                        toneGenerator = null
+                    }
+                }
+            }
+        }
+        return toneGenerator
+    }
+
+    private fun playToneSafely(toneType: Int, durationMs: Int) {
+        if (!isSoundEnabled) return
         try {
-            // Priority normal streams
-            toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 85)
+            getToneGen()?.startTone(toneType, durationMs)
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Ignored to avoid breaking audio thread
         }
     }
 
     fun playStrikeSound() {
-        if (!isSoundEnabled) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 80)
-            } catch (e: Exception) {
-                // fallbacks
-            }
-        }
+        playToneSafely(ToneGenerator.TONE_PROP_BEEP, 60)
     }
 
     fun playBounceSound() {
-        if (!isSoundEnabled) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                toneGenerator?.startTone(ToneGenerator.TONE_CDMA_PIP, 40)
-            } catch (e: Exception) {
-                // fallback
-            }
-        }
+        playToneSafely(ToneGenerator.TONE_CDMA_PIP, 35)
     }
 
     fun playPocketSound() {
-        if (!isSoundEnabled) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                toneGenerator?.startTone(ToneGenerator.TONE_SUP_DIAL, 150)
-            } catch (e: Exception) {
-                // fallback
-            }
-        }
+        playToneSafely(ToneGenerator.TONE_SUP_DIAL, 120)
     }
 
     fun playFoulSound() {
-        if (!isSoundEnabled) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                toneGenerator?.startTone(ToneGenerator.TONE_SUP_ERROR, 220)
-            } catch (e: Exception) {
-                // fallback
-            }
-        }
+        playToneSafely(ToneGenerator.TONE_SUP_ERROR, 200)
     }
 
     fun playWarningTickSound() {
-        if (!isSoundEnabled) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                toneGenerator?.startTone(ToneGenerator.TONE_PROP_PROMPT, 60)
-            } catch (e: Exception) {
-                // fallback
-            }
-        }
+        playToneSafely(ToneGenerator.TONE_PROP_PROMPT, 50)
     }
 
     fun playTimeoutBuzzerSound() {
-        if (!isSoundEnabled) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                toneGenerator?.startTone(ToneGenerator.TONE_SUP_ERROR, 350)
-            } catch (e: Exception) {
-                // fallback
-            }
-        }
+        playToneSafely(ToneGenerator.TONE_SUP_ERROR, 300)
     }
 
     fun playVictorySound() {
-        if (!isSoundEnabled) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                toneGenerator?.startTone(ToneGenerator.TONE_SUP_CONGESTION, 400)
-            } catch (e: Exception) {
-                // fallback
-            }
-        }
+        playToneSafely(ToneGenerator.TONE_SUP_CONGESTION, 350)
     }
 
     fun triggerVibration(context: Context) {

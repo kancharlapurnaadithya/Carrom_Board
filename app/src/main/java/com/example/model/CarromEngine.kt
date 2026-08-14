@@ -9,7 +9,8 @@ class CarromEngine(
     var numberOfPlayers: Int = 2,
     var playerNames: List<String> = listOf("Player 1", "Player 2"),
     var boardTheme: BoardTheme = BoardTheme.WOODEN,
-    var coinTheme: CoinTheme = CoinTheme.CLASSIC
+    var coinTheme: CoinTheme = CoinTheme.CLASSIC,
+    var aiDifficulty: AiDifficulty = AiDifficulty.INTERMEDIATE
 ) {
     companion object {
         const val BOARD_SIZE = 800f
@@ -50,6 +51,8 @@ class CarromEngine(
     var queenWaitingForCover = false
     var queenCoverPlayerIndex: Int? = null
     var queenInPocketTemp: Coin? = null
+    var queenCoveredThisTurn = false
+    var doublePointsAwardedCount = 0
 
     // Tracking shots & results
     var blackCoinsLeft = 9
@@ -120,6 +123,8 @@ class CarromEngine(
         queenWaitingForCover = false
         queenCoverPlayerIndex = null
         queenInPocketTemp = null
+        queenCoveredThisTurn = false
+        doublePointsAwardedCount = 0
         blackCoinsLeft = 9
         whiteCoinsLeft = 9
         queenLeft = true
@@ -490,32 +495,57 @@ class CarromEngine(
         // Rule assessment
         when (coin.type) {
             CoinType.WHITE -> {
-                player.score += 10
-                turnScoreDelta += 10
-                whiteCoinsLeft = coins.count { it.type == CoinType.WHITE && !it.isPocketed }
-                matchLogs.add("${player.name} pocketed a White Coin (+10 pts).")
-                // Track achievement
+                val isCoveringQueen = (queenWaitingForCover && activePlayerIndex == queenCoverPlayerIndex && !queenCoveredThisTurn) ||
+                        (queenPocketedThisTurn && !queenCoveredThisTurn)
+
+                if (isCoveringQueen) {
+                    queenCoveredThisTurn = true
+                    doublePointsAwardedCount++
+                    val points = 20 // Double points for White Coin (10 * 2)
+                    player.score += points
+                    turnScoreDelta += points
+                    whiteCoinsLeft = coins.count { it.type == CoinType.WHITE && !it.isPocketed }
+                    matchLogs.add("🎉 ${player.name} pocketed a White Coin covering the Queen! (+${points} pts DOUBLE POINTS!).")
+                } else {
+                    player.score += 10
+                    turnScoreDelta += 10
+                    whiteCoinsLeft = coins.count { it.type == CoinType.WHITE && !it.isPocketed }
+                    matchLogs.add("${player.name} pocketed a White Coin (+10 pts).")
+                }
                 player.coinsCollected++
             }
             CoinType.BLACK -> {
-                player.score += 5
-                turnScoreDelta += 5
-                blackCoinsLeft = coins.count { it.type == CoinType.BLACK && !it.isPocketed }
-                matchLogs.add("${player.name} pocketed a Black Coin (+5 pts).")
+                val isCoveringQueen = (queenWaitingForCover && activePlayerIndex == queenCoverPlayerIndex && !queenCoveredThisTurn) ||
+                        (queenPocketedThisTurn && !queenCoveredThisTurn)
+
+                if (isCoveringQueen) {
+                    queenCoveredThisTurn = true
+                    doublePointsAwardedCount++
+                    val points = 10 // Double points for Black Coin (5 * 2)
+                    player.score += points
+                    turnScoreDelta += points
+                    blackCoinsLeft = coins.count { it.type == CoinType.BLACK && !it.isPocketed }
+                    matchLogs.add("🎉 ${player.name} pocketed a Black Coin covering the Queen! (+${points} pts DOUBLE POINTS!).")
+                } else {
+                    player.score += 5
+                    turnScoreDelta += 5
+                    blackCoinsLeft = coins.count { it.type == CoinType.BLACK && !it.isPocketed }
+                    matchLogs.add("${player.name} pocketed a Black Coin (+5 pts).")
+                }
                 player.coinsCollected++
             }
             CoinType.QUEEN -> {
                 queenLeft = false
                 queenPocketedThisTurn = true
                 queenInPocketTemp = coin
-                matchLogs.add("${player.name} pocketed the Red Queen! Must pocket a 'cover' coin next shot.")
+                matchLogs.add("👑 ${player.name} pocketed the Red Queen! Must pocket a cover coin to secure +25 pts & DOUBLE POINTS.")
             }
             else -> {}
         }
 
-        // Check if there are no coins left
+        // Check if there are no playable coins left
         val playableLeft = coins.count { (it.type == CoinType.WHITE || it.type == CoinType.BLACK || it.type == CoinType.QUEEN) && !it.isPocketed }
-        if (playableLeft == 0 && !queenWaitingForCover) {
+        if (playableLeft == 0 && !queenWaitingForCover && !queenPocketedThisTurn) {
             endMatch()
         }
     }
@@ -532,22 +562,27 @@ class CarromEngine(
     private fun concludeTurn() {
         val player = players[activePlayerIndex]
 
-        // Handle Queen Cover check
-        if (queenWaitingForCover) {
-            if (activePlayerIndex == queenCoverPlayerIndex) {
-                if (playerPocketedAnyThisTurn && !foulOccurred) {
-                    // Queen cover successful! Get points!
-                    player.score += 25
-                    turnScoreDelta += 25
-                    queenWaitingForCover = false
-                    queenCoverPlayerIndex = null
-                    queenInPocketTemp = null
-                    matchLogs.add("${player.name} successfully COVERED the Queen! (+25 pts).")
-                } else {
-                    // Cover failed! Queen returned to center circle
-                    queenWaitingForCover = false
-                    queenCoverPlayerIndex = null
-                    val q = queenInPocketTemp ?: coins.first { it.type == CoinType.QUEEN }
+        // 1. Check Queen Cover Resolution
+        if (queenCoveredThisTurn) {
+            // Queen was covered this turn (either in same shot or on cover shot)
+            if (!foulOccurred) {
+                player.score += 25
+                turnScoreDelta += 25
+                queenWaitingForCover = false
+                queenCoverPlayerIndex = null
+                queenInPocketTemp = null
+                queenLeft = false
+                queenCoveredThisTurn = false
+                queenPocketedThisTurn = false
+                matchLogs.add("👑 ${player.name} officially secured the Queen! (+25 pts Queen Bonus & Double Points retained).")
+            } else {
+                // Sunk cover coin but committed a foul! Queen returns to center
+                queenWaitingForCover = false
+                queenCoverPlayerIndex = null
+                queenCoveredThisTurn = false
+                queenPocketedThisTurn = false
+                val q = queenInPocketTemp ?: coins.firstOrNull { it.type == CoinType.QUEEN }
+                if (q != null) {
                     q.isPocketed = false
                     q.scale = 1.0f
                     q.opacity = 1.0f
@@ -555,27 +590,52 @@ class CarromEngine(
                     q.y = BOARD_SIZE / 2f
                     q.vx = 0f
                     q.vy = 0f
-                    queenLeft = true
-                    matchLogs.add("${player.name} failed to COVER the Queen. Queen returned to center.")
                 }
+                queenInPocketTemp = null
+                queenLeft = true
+                matchLogs.add("❌ Foul committed during cover shot! Red Queen returned to center.")
+            }
+        } else if (queenWaitingForCover) {
+            if (activePlayerIndex == queenCoverPlayerIndex) {
+                // Player was on a cover shot from previous turn, but did NOT pocket a cover coin or committed foul
+                queenWaitingForCover = false
+                queenCoverPlayerIndex = null
+                val q = queenInPocketTemp ?: coins.firstOrNull { it.type == CoinType.QUEEN }
+                if (q != null) {
+                    q.isPocketed = false
+                    q.scale = 1.0f
+                    q.opacity = 1.0f
+                    q.x = BOARD_SIZE / 2f
+                    q.y = BOARD_SIZE / 2f
+                    q.vx = 0f
+                    q.vy = 0f
+                }
+                queenInPocketTemp = null
+                queenLeft = true
+                matchLogs.add("❌ ${player.name} failed to cover the Queen! Red Queen returned to center circle.")
             }
         } else if (queenPocketedThisTurn) {
-            // Player just pocketed Queen. Enable cover state
+            // Player just pocketed Queen on this shot, but no cover coin yet
             if (!foulOccurred) {
                 queenWaitingForCover = true
                 queenCoverPlayerIndex = activePlayerIndex
+                matchLogs.add("👑 ${player.name} pocketed the Red Queen! Retains turn to shoot for the cover coin.")
             } else {
                 // Sunk Queen but committed foul. Returns to center
-                val q = queenInPocketTemp ?: coins.first { it.type == CoinType.QUEEN }
-                q.isPocketed = false
-                q.scale = 1.0f
-                q.opacity = 1.0f
-                q.x = BOARD_SIZE / 2f
-                q.y = BOARD_SIZE / 2f
-                q.vx = 0f
-                q.vy = 0f
+                val q = queenInPocketTemp ?: coins.firstOrNull { it.type == CoinType.QUEEN }
+                if (q != null) {
+                    q.isPocketed = false
+                    q.scale = 1.0f
+                    q.opacity = 1.0f
+                    q.x = BOARD_SIZE / 2f
+                    q.y = BOARD_SIZE / 2f
+                    q.vx = 0f
+                    q.vy = 0f
+                }
+                queenInPocketTemp = null
                 queenLeft = true
-                matchLogs.add("${player.name} pocketed Queen but committed a foul. Queen returned to center.")
+                queenPocketedThisTurn = false
+                matchLogs.add("❌ ${player.name} pocketed Queen but committed a foul! Red Queen returned to center.")
             }
         }
 
@@ -595,7 +655,7 @@ class CarromEngine(
 
         // Final completion check
         val coinsLeft = coins.count { (it.type == CoinType.WHITE || it.type == CoinType.BLACK || it.type == CoinType.QUEEN) && !it.isPocketed }
-        if (coinsLeft == 0 && !queenWaitingForCover) {
+        if (coinsLeft == 0 && !queenWaitingForCover && !queenPocketedThisTurn) {
             endMatch()
         }
     }
@@ -615,55 +675,172 @@ class CarromEngine(
         matchLogs.add("Match completed! Winner: ${winnerName} with ${winningPlayer.score} pts.")
     }
 
-    fun calculateAiShot(): Pair<Float, PhysicsVector> {
+    fun calculateAiShot(difficulty: AiDifficulty = aiDifficulty): Pair<Float, PhysicsVector> {
         val unpotted = coins.filter { !it.isPocketed }
         if (unpotted.isEmpty()) {
             return Pair(400f, PhysicsVector(0f, 12f))
         }
 
         val aiY = getBaselineY(activePlayerIndex)
-        var bestCoin = unpotted.first()
-        var bestPocket = POCKETS[2] // Bottom Left
-        var minScore = Float.MAX_VALUE
+        val isCoveringQueen = queenWaitingForCover && activePlayerIndex == queenCoverPlayerIndex
 
-        for (coin in unpotted) {
-            for (pocket in POCKETS) {
-                val dxP = coin.x - pocket.x
-                val dyP = coin.y - pocket.y
-                val distToPocket = sqrt(dxP * dxP + dyP * dyP)
+        // 1. Candidate Striker Baseline Positions based on difficulty depth
+        val samplePositions = when (difficulty) {
+            AiDifficulty.NOVICE -> listOf(180f + (Math.random().toFloat() * 440f))
+            AiDifficulty.BEGINNER -> listOf(220f, 320f, 400f, 480f, 580f)
+            AiDifficulty.INTERMEDIATE -> (0..10).map { 180f + it * (440f / 10f) }
+            AiDifficulty.EXPERT -> (0..20).map { 180f + it * (440f / 20f) }
+            AiDifficulty.GRANDMASTER -> (0..36).map { 180f + it * (440f / 36f) }
+        }
 
-                val dxA = coin.x - 400f
-                val dyA = coin.y - aiY
-                val distToAi = sqrt(dxA * dxA + dyA * dyA)
+        // 2. Target Coins Evaluation
+        val candidateCoins = if (isCoveringQueen) {
+            // Prioritize non-queen coins for cover
+            val nonQueen = unpotted.filter { it.type != CoinType.QUEEN }
+            if (nonQueen.isNotEmpty()) nonQueen else unpotted
+        } else if (difficulty == AiDifficulty.NOVICE) {
+            // Novice may pick a random coin
+            unpotted.shuffled().take(3)
+        } else {
+            unpotted
+        }
 
-                val score = distToPocket * 1.5f + distToAi * 0.5f
-                if (score < minScore) {
-                    minScore = score
-                    bestCoin = coin
-                    bestPocket = pocket
+        var bestStrikerX = 400f
+        var bestAimVector = PhysicsVector(0f, 13f)
+        var bestScore = Float.MAX_VALUE
+
+        for (candidateX in samplePositions) {
+            for (coin in candidateCoins) {
+                // Target each pocket
+                for (pocket in POCKETS) {
+                    val pdx = pocket.x - coin.x
+                    val pdy = pocket.y - coin.y
+                    val pdist = sqrt(pdx * pdx + pdy * pdy).coerceAtLeast(1f)
+                    val normPx = pdx / pdist
+                    val normPy = pdy / pdist
+
+                    // Contact point behind the coin
+                    val targetX = coin.x - normPx * (COIN_RADIUS + STRIKER_RADIUS)
+                    val targetY = coin.y - normPy * (COIN_RADIUS + STRIKER_RADIUS)
+
+                    val sdx = targetX - candidateX
+                    val sdy = targetY - aiY
+                    val sdist = sqrt(sdx * sdx + sdy * sdy).coerceAtLeast(1f)
+                    val normSx = sdx / sdist
+                    val normSy = sdy / sdist
+
+                    // Cut Angle: Dot product of Striker direction and Coin-to-Pocket direction
+                    val dot = normSx * normPx + normSy * normPy
+
+                    // Impossible cut angles (e.g. angle > 80 degrees)
+                    if (dot < 0.15f && difficulty.strategicDepth >= 2) {
+                        continue
+                    }
+
+                    // Raycast Obstacle Evaluation for higher difficulties
+                    var obstaclePenalty = 0f
+                    if (difficulty.strategicDepth >= 3) {
+                        for (other in unpotted) {
+                            if (other.id == coin.id) continue
+                            // Check distance from line between striker and coin
+                            val distToStrikerRay = pointToSegmentDistance(
+                                other.x, other.y,
+                                candidateX, aiY,
+                                targetX, targetY
+                            )
+                            if (distToStrikerRay < (COIN_RADIUS + STRIKER_RADIUS) * 0.85f) {
+                                obstaclePenalty += 450f
+                            }
+
+                            // Check distance from line between coin and pocket
+                            val distToPocketRay = pointToSegmentDistance(
+                                other.x, other.y,
+                                coin.x, coin.y,
+                                pocket.x, pocket.y
+                            )
+                            if (distToPocketRay < (COIN_RADIUS * 1.8f)) {
+                                obstaclePenalty += 550f
+                            }
+                        }
+                    }
+
+                    // Scratch risk evaluation (striker directly heading to a pocket)
+                    var scratchPenalty = 0f
+                    if (difficulty.strategicDepth >= 4) {
+                        for (p in POCKETS) {
+                            val distToPocketLine = pointToSegmentDistance(
+                                p.x, p.y,
+                                candidateX, aiY,
+                                candidateX + normSx * 900f, aiY + normSy * 900f
+                            )
+                            if (distToPocketLine < POCKET_RADIUS * 1.1f && sdist > 250f) {
+                                scratchPenalty += 600f
+                            }
+                        }
+                    }
+
+                    // Queen prioritization bonus for Grandmaster / Expert
+                    val strategicBonus = if (coin.type == CoinType.QUEEN && !isCoveringQueen) {
+                        when (difficulty) {
+                            AiDifficulty.GRANDMASTER -> -220f
+                            AiDifficulty.EXPERT -> -150f
+                            AiDifficulty.INTERMEDIATE -> -70f
+                            else -> 0f
+                        }
+                    } else if (isCoveringQueen) {
+                        // Bonus for easy closer coins to secure Queen cover
+                        -120f
+                    } else 0f
+
+                    // Overall heuristic score (lower is better)
+                    val cutPenalty = (1.0f - dot.coerceIn(0f, 1f)) * 400f
+                    val score = (pdist * 1.2f) + (sdist * 0.8f) + cutPenalty + obstaclePenalty + scratchPenalty + strategicBonus
+
+                    if (score < bestScore) {
+                        bestScore = score
+                        bestStrikerX = candidateX
+
+                        // Calibrate speed based on total travel distance
+                        val calculatedSpeed = (11.5f + (sdist / 380f) * 3.2f + (pdist / 380f) * 3.8f).coerceIn(11.0f, 18.0f)
+                        bestAimVector = PhysicsVector(normSx * calculatedSpeed, normSy * calculatedSpeed)
+                    }
                 }
             }
         }
 
-        val pdx = bestPocket.x - bestCoin.x
-        val pdy = bestPocket.y - bestCoin.y
-        val pdist = sqrt(pdx * pdx + pdy * pdy).coerceAtLeast(1f)
-        val normPx = pdx / pdist
-        val normPy = pdy / pdist
+        // Apply Difficulty Accuracy & Power Noise
+        val angleNoise = (Math.random().toFloat() * 2f - 1f) * difficulty.accuracyVariance
+        val powerNoise = 1.0f + (Math.random().toFloat() * 2f - 1f) * difficulty.powerVariance
 
-        val targetX = bestCoin.x - normPx * (COIN_RADIUS + STRIKER_RADIUS)
-        val targetY = bestCoin.y - normPy * (COIN_RADIUS + STRIKER_RADIUS)
+        val currentSpeed = bestAimVector.length() * powerNoise
+        val baseAngle = atan2(bestAimVector.y, bestAimVector.x) + angleNoise
 
-        val strikerX = targetX.coerceIn(180f, 620f)
-        val dx = targetX - strikerX
-        val dy = targetY - aiY
-        val dist = sqrt(dx * dx + dy * dy).coerceAtLeast(1f)
+        val finalVx = cos(baseAngle) * currentSpeed
+        val finalVy = sin(baseAngle) * currentSpeed
 
-        val speed = (12f + (dist / 400f) * 6f).coerceIn(10f, 17f)
-        val vx = (dx / dist) * speed
-        val vy = (dy / dist) * speed
+        return Pair(bestStrikerX.coerceIn(180f, 620f), PhysicsVector(finalVx, finalVy))
+    }
 
-        return Pair(strikerX, PhysicsVector(vx, vy))
+    private fun pointToSegmentDistance(
+        px: Float, py: Float,
+        x1: Float, y1: Float,
+        x2: Float, y2: Float
+    ): Float {
+        val dx = x2 - x1
+        val dy = y2 - y1
+        val lenSq = dx * dx + dy * dy
+        if (lenSq == 0f) {
+            val dpx = px - x1
+            val dpy = py - y1
+            return sqrt(dpx * dpx + dpy * dpy)
+        }
+
+        val t = (((px - x1) * dx + (py - y1) * dy) / lenSq).coerceIn(0f, 1f)
+        val projX = x1 + t * dx
+        val projY = y1 + t * dy
+        val distX = px - projX
+        val distY = py - projY
+        return sqrt(distX * distX + distY * distY)
     }
 
     fun triggerPocketBurst(px: Float, py: Float, coinType: CoinType) {
@@ -755,6 +932,21 @@ class CarromEngine(
                 iterator.remove()
             }
         }
+    }
+
+    // Testing helper hooks
+    fun simulateCoinPocketedForTesting(coin: Coin) {
+        coin.isPocketed = true
+        coin.opacity = 0f
+        onCoinCollected(coin)
+    }
+
+    fun concludeTurnForTesting() {
+        concludeTurn()
+    }
+
+    fun resetStrikerForPlayerForTesting(playerIndex: Int) {
+        resetStrikerForPlayer(playerIndex)
     }
 }
 

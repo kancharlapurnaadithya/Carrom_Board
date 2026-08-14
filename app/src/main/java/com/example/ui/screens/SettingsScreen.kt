@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.AiDifficulty
 import com.example.model.BoardTheme
 import com.example.model.CoinTheme
 import com.example.ui.SoundManager
@@ -44,6 +45,7 @@ fun SettingsScreen(
     // Local toggles & selection states initialized from View Model
     var localBoard by remember { mutableStateOf(viewModel.boardTheme) }
     var localCoins by remember { mutableStateOf(viewModel.coinTheme) }
+    var localDifficulty by remember { mutableStateOf(viewModel.aiDifficulty) }
     var soundsOn by remember { mutableStateOf(SoundManager.isSoundEnabled) }
     var musicOn by remember { mutableStateOf(SoundManager.isMusicEnabled) }
     var vibrationOn by remember { mutableStateOf(SoundManager.isVibrationEnabled) }
@@ -73,7 +75,7 @@ fun SettingsScreen(
                     IconButton(onClick = {
                         SoundManager.playStrikeSound()
                         // Auto save changes before navigating back
-                        viewModel.saveSettings(localBoard, localCoins, soundsOn, musicOn, vibrationOn, localTimerLimit)
+                        viewModel.saveSettings(localBoard, localCoins, soundsOn, musicOn, vibrationOn, localTimerLimit, localDifficulty)
                         viewModel.navigateTo(AppScreen.MENU)
                     }) {
                         Icon(
@@ -87,7 +89,7 @@ fun SettingsScreen(
                     IconButton(onClick = {
                         SoundManager.playStrikeSound()
                         // Save triggers
-                        viewModel.saveSettings(localBoard, localCoins, soundsOn, musicOn, vibrationOn, localTimerLimit)
+                        viewModel.saveSettings(localBoard, localCoins, soundsOn, musicOn, vibrationOn, localTimerLimit, localDifficulty)
                         SoundManager.triggerVibration(context)
                     }) {
                         Icon(
@@ -169,7 +171,32 @@ fun SettingsScreen(
                         }
                     }
 
-                    // 2. TURN COUNTDOWN TIMER & PENALTY RULES
+                    // 2. AI DIFFICULTY SETTINGS
+                    Text(
+                        "AI DIFFICULTY & INTELLIGENCE",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SleekTextMuted,
+                        letterSpacing = 1.sp
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AiDifficulty.values().forEach { diff ->
+                            val isSelected = localDifficulty == diff
+                            AiDifficultyCard(
+                                difficulty = diff,
+                                isSelected = isSelected,
+                                onClick = {
+                                    SoundManager.playStrikeSound()
+                                    localDifficulty = diff
+                                }
+                            )
+                        }
+                    }
+
+                    // 3. TURN COUNTDOWN TIMER & PENALTY RULES
                     Text(
                         "TURN TIME LIMIT & RULES",
                         fontSize = 11.sp,
@@ -326,6 +353,7 @@ fun SettingsScreen(
                         viewModel.resetPreferencesData()
                         localBoard = viewModel.boardTheme
                         localCoins = viewModel.coinTheme
+                        localDifficulty = viewModel.aiDifficulty
                         soundsOn = SoundManager.isSoundEnabled
                         musicOn = SoundManager.isMusicEnabled
                         vibrationOn = SoundManager.isVibrationEnabled
@@ -528,3 +556,84 @@ fun CoinSelectionCard(
         }
     }
 }
+
+@Composable
+fun AiDifficultyCard(
+    difficulty: AiDifficulty,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val tierColor = when (difficulty) {
+        AiDifficulty.NOVICE -> Color(0xFF4CAF50)
+        AiDifficulty.BEGINNER -> Color(0xFF29B6F6)
+        AiDifficulty.INTERMEDIATE -> Color(0xFFFFB300)
+        AiDifficulty.EXPERT -> Color(0xFFFF7043)
+        AiDifficulty.GRANDMASTER -> Color(0xFFE040FB)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .testTag("ai_diff_${difficulty.name.lowercase()}"),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) SleekSurface.copy(alpha = 0.85f) else SleekSurface.copy(alpha = 0.4f)
+        ),
+        border = BorderStroke(
+            if (isSelected) 2.dp else 1.dp,
+            if (isSelected) tierColor else SleekSurfaceBorder
+        ),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(tierColor, shape = CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        difficulty.displayName,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) SleekTextPrimary else SleekTextPrimary.copy(alpha = 0.85f)
+                    )
+                }
+
+                Surface(
+                    color = tierColor.copy(alpha = if (isSelected) 0.25f else 0.12f),
+                    shape = RoundedCornerShape(4.dp),
+                    border = BorderStroke(1.dp, tierColor.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = "Depth ${difficulty.strategicDepth}/5",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = tierColor,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = difficulty.description,
+                fontSize = 11.sp,
+                color = SleekTextMuted,
+                lineHeight = 15.sp
+            )
+        }
+    }
+}
+

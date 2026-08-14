@@ -92,11 +92,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var strikerPositionFraction by mutableStateOf(0.5f)
     var powerBoostMultiplier by mutableStateOf(1.3f)
     var turnTimerSeconds by mutableStateOf(15f)
+    var aiDifficulty by mutableStateOf(AiDifficulty.INTERMEDIATE)
 
     private var lastTickedSecond = -1
 
     fun setPowerBoost(boost: Float) {
         powerBoostMultiplier = boost
+    }
+
+    fun setAiDifficultyLevel(difficulty: AiDifficulty) {
+        aiDifficulty = difficulty
+        engine.aiDifficulty = difficulty
+        sharedPrefs.edit().putString("AI_DIFFICULTY", difficulty.name).apply()
     }
 
     fun setTurnTimerDuration(seconds: Float) {
@@ -122,12 +129,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val coinThemeName = sharedPrefs.getString("COIN_THEME", CoinTheme.CLASSIC.name) ?: CoinTheme.CLASSIC.name
         coinTheme = try { CoinTheme.valueOf(coinThemeName) } catch (e: Exception) { CoinTheme.CLASSIC }
 
+        val aiDifficultyName = sharedPrefs.getString("AI_DIFFICULTY", AiDifficulty.INTERMEDIATE.name) ?: AiDifficulty.INTERMEDIATE.name
+        aiDifficulty = try { AiDifficulty.valueOf(aiDifficultyName) } catch (e: Exception) { AiDifficulty.INTERMEDIATE }
+
         SoundManager.isSoundEnabled = sharedPrefs.getBoolean("SOUNDS_ON", true)
         SoundManager.isMusicEnabled = sharedPrefs.getBoolean("MUSIC_ON", true)
         SoundManager.isVibrationEnabled = sharedPrefs.getBoolean("VIBRATION_ON", true)
 
         turnTimerSeconds = sharedPrefs.getFloat("TURN_TIMER_SEC", 15f)
         engine.setTurnTimeLimit(turnTimerSeconds)
+        engine.aiDifficulty = aiDifficulty
 
         player1Name = sharedPrefs.getString("PLAYER_1_NAME", "Player 1") ?: "Player 1"
         player2Name = sharedPrefs.getString("PLAYER_2_NAME", "Player 2") ?: "Player 2"
@@ -141,7 +152,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         soundsOn: Boolean,
         musicOn: Boolean,
         vibrationOn: Boolean,
-        timerLimit: Float = turnTimerSeconds
+        timerLimit: Float = turnTimerSeconds,
+        difficulty: AiDifficulty = aiDifficulty
     ) {
         boardTheme = selectedBoard
         coinTheme = selectedCoins
@@ -149,6 +161,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         SoundManager.isMusicEnabled = musicOn
         SoundManager.isVibrationEnabled = vibrationOn
         turnTimerSeconds = timerLimit
+        aiDifficulty = difficulty
 
         sharedPrefs.edit()
             .putString("BOARD_THEME", selectedBoard.name)
@@ -157,12 +170,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             .putBoolean("MUSIC_ON", musicOn)
             .putBoolean("VIBRATION_ON", vibrationOn)
             .putFloat("TURN_TIMER_SEC", timerLimit)
+            .putString("AI_DIFFICULTY", difficulty.name)
             .apply()
         
-        // Update active engine themes and timer
+        // Update active engine themes, timer, and AI difficulty
         engine.boardTheme = selectedBoard
         engine.coinTheme = selectedCoins
         engine.setTurnTimeLimit(timerLimit)
+        engine.aiDifficulty = difficulty
     }
 
     fun savePlayerNames(p1: String, p2: String, p3: String, p4: String) {
@@ -194,7 +209,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun startNewGame() {
         // Collect names based on game mode & player count
         val (finalCount, names) = when (gameMode) {
-            GameMode.VS_COMPUTER -> Pair(2, listOf(player1Name.ifBlank { "You" }, "Computer AI"))
+            GameMode.VS_COMPUTER -> Pair(2, listOf(player1Name.ifBlank { "You" }, "AI (${aiDifficulty.displayName})"))
             GameMode.PRACTICE -> Pair(1, listOf(player1Name.ifBlank { "Player 1" }))
             GameMode.PASS_AND_PLAY -> {
                 val pList = when (playerCount) {
@@ -212,8 +227,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             numberOfPlayers = finalCount,
             playerNames = names,
             boardTheme = boardTheme,
-            coinTheme = coinTheme
+            coinTheme = coinTheme,
+            aiDifficulty = aiDifficulty
         )
+        engine.setTurnTimeLimit(turnTimerSeconds)
 
         isPaused = false
         strikerPositionFraction = 0.5f
@@ -304,11 +321,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     if (gameMode == GameMode.VS_COMPUTER && engine.activePlayerIndex == 1 && !engine.isMoving && engine.isStrikerPlaced && !aiTurnInProgress && !engine.gameCompleted) {
                         aiTurnInProgress = true
                         viewModelScope.launch {
-                            delay(800)
+                            val thinkingTime = when (aiDifficulty) {
+                                AiDifficulty.NOVICE -> 900L
+                                AiDifficulty.BEGINNER -> 800L
+                                AiDifficulty.INTERMEDIATE -> 700L
+                                AiDifficulty.EXPERT -> 600L
+                                AiDifficulty.GRANDMASTER -> 500L
+                            }
+                            delay(thinkingTime)
                             if (engine.activePlayerIndex == 1 && !engine.isMoving && !engine.gameCompleted) {
-                                val (aiX, aiPower) = engine.calculateAiShot()
+                                val (aiX, aiPower) = engine.calculateAiShot(aiDifficulty)
                                 engine.updateStrikerPlacement((aiX - 180f) / 440f)
-                                delay(400)
+                                delay(350)
                                 engine.launchStriker(aiPower.x, aiPower.y)
                                 SoundManager.playStrikeSound()
                             }

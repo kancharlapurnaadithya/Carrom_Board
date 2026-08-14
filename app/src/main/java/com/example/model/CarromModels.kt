@@ -159,3 +159,53 @@ data class Player(
     var score: Int = 0,
     var coinsCollected: Int = 0
 )
+
+enum class AiDifficulty(
+    val displayName: String,
+    val description: String,
+    val accuracyVariance: Float, // Aim angle variance in radians
+    val powerVariance: Float,    // Power scale variance
+    val strategicDepth: Int,     // Search breadth & obstacle checking
+    val tag: String
+) {
+    NOVICE(
+        displayName = "Novice",
+        description = "Low accuracy, simple and mostly random decisions.",
+        accuracyVariance = 0.24f,
+        powerVariance = 0.35f,
+        strategicDepth = 1,
+        tag = "Casual"
+    ),
+    BEGINNER(
+        displayName = "Beginner",
+        description = "Moderate accuracy with basic decision-making.",
+        accuracyVariance = 0.12f,
+        powerVariance = 0.18f,
+        strategicDepth = 2,
+        tag = "Easy"
+    ),
+    INTERMEDIATE(
+        displayName = "Intermediate",
+        description = "Good accuracy with improved shot selection and positioning.",
+        accuracyVariance = 0.045f,
+        powerVariance = 0.07f,
+        strategicDepth = 3,
+        tag = "Balanced"
+    ),
+    EXPERT(
+        displayName = "Expert",
+        description = "High accuracy with strong strategic decision-making.",
+        accuracyVariance = 0.015f,
+        powerVariance = 0.025f,
+        strategicDepth = 4,
+        tag = "Hard"
+    ),
+    GRANDMASTER(
+        displayName = "Grandmaster",
+        description = "Very high accuracy with advanced strategy, optimal shot selection, and intelligent decision-making.",
+        accuracyVariance = 0.000f,
+        powerVariance = 0.000f,
+        strategicDepth = 5,
+        tag = "Master"
+    )
+}
