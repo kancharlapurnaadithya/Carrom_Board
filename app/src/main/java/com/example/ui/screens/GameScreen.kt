@@ -77,6 +77,10 @@ fun GameScreen(
                 players = engine.players,
                 activeIndex = engine.activePlayerIndex,
                 isMoving = engine.isMoving,
+                turnTimeRemaining = engine.turnTimeRemaining,
+                turnTimeLimit = engine.turnTimeLimitSeconds,
+                isTimerEnabled = engine.isTimerEnabled,
+                timerWarning = engine.timerWarningActive,
                 onPauseToggle = {
                     SoundManager.playStrikeSound()
                     viewModel.togglePause()
@@ -86,6 +90,16 @@ fun GameScreen(
                     viewModel.restartCurrentGame()
                 }
             )
+
+            // 1B. TURN COUNTDOWN PROGRESS STRIP
+            if (engine.isTimerEnabled && engine.turnTimeLimitSeconds > 0f && !engine.gameCompleted) {
+                TurnTimerCountdownStrip(
+                    engine = engine,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
 
             // 2. CORE CARROM BOARD CANVAS VIEW BOUNDS
             Box(
@@ -297,22 +311,38 @@ fun GameHeaderPanel(
     players: List<Player>,
     activeIndex: Int,
     isMoving: Boolean,
+    turnTimeRemaining: Float = 0f,
+    turnTimeLimit: Float = 0f,
+    isTimerEnabled: Boolean = false,
+    timerWarning: Boolean = false,
     onPauseToggle: () -> Unit,
     onRestartClick: () -> Unit
 ) {
+    // Pulse animation for urgent countdown under 4 seconds
+    val infiniteTransition = rememberInfiniteTransition(label = "timer_pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(300, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(SleekBackground.copy(alpha = 0.6f))
             .border(BorderStroke(1.dp, SleekSurfaceBorder))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Left Column: Custom layout rows of players in session
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             val chunks = players.chunked(2)
             chunks.forEach { rowPlayers ->
@@ -325,14 +355,20 @@ fun GameHeaderPanel(
 
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isTurn) SleekOrange.copy(alpha = 0.12f) else SleekSurface.copy(alpha = 0.4f)
+                                containerColor = if (isTurn) {
+                                    if (timerWarning) Color(0xFFFF1744).copy(alpha = 0.18f * pulseAlpha)
+                                    else SleekOrange.copy(alpha = 0.12f)
+                                } else SleekSurface.copy(alpha = 0.4f)
                             ),
                             shape = MaterialTheme.shapes.small,
                             modifier = Modifier
                                 .weight(1f)
                                 .border(
                                     1.dp,
-                                    if (isTurn) SleekOrange else Color.Transparent,
+                                    if (isTurn) {
+                                        if (timerWarning) Color(0xFFFF1744).copy(alpha = pulseAlpha)
+                                        else SleekOrange
+                                    } else Color.Transparent,
                                     shape = MaterialTheme.shapes.small
                                 )
                         ) {
@@ -349,7 +385,9 @@ fun GameHeaderPanel(
                                         modifier = Modifier
                                             .size(6.dp)
                                             .background(
-                                                if (isTurn) SleekOrange else SleekTextMuted,
+                                                if (isTurn) {
+                                                    if (timerWarning) Color(0xFFFF1744) else SleekOrange
+                                                } else SleekTextMuted,
                                                 shape = CircleShape
                                             )
                                     )
@@ -357,18 +395,38 @@ fun GameHeaderPanel(
                                     Text(
                                         text = player.name,
                                         fontSize = 11.sp,
-                                        color = if (isTurn) SleekOrange else SleekTextPrimary,
+                                        color = if (isTurn) {
+                                            if (timerWarning) Color(0xFFFF5252) else SleekOrange
+                                        } else SleekTextPrimary,
                                         fontWeight = if (isTurn) FontWeight.Bold else FontWeight.Medium,
                                         maxLines = 1
                                     )
                                 }
 
-                                Text(
-                                    text = player.score.toString() + " pts",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = if (isTurn) SleekOrange else SleekTextSecondary
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (isTurn && isTimerEnabled && turnTimeLimit > 0f) {
+                                        Surface(
+                                            color = if (timerWarning) Color(0xFFFF1744).copy(alpha = 0.3f) else SleekSurfaceBorder.copy(alpha = 0.6f),
+                                            shape = RoundedCornerShape(4.dp),
+                                            modifier = Modifier.padding(end = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = "${turnTimeRemaining.toInt().coerceAtLeast(0)}s",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (timerWarning) Color(0xFFFF5252) else SleekOrangeLight,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Text(
+                                        text = "${player.score} pts",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (isTurn) SleekOrange else SleekTextSecondary
+                                    )
+                                }
                             }
                         }
                     }
@@ -376,7 +434,7 @@ fun GameHeaderPanel(
             }
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         // Right side: Game commands
         Row(
@@ -389,7 +447,7 @@ fun GameHeaderPanel(
                     containerColor = SleekSurface
                 ),
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(38.dp)
                     .border(1.dp, SleekSurfaceBorder, shape = CircleShape)
             ) {
                 Icon(
@@ -405,15 +463,125 @@ fun GameHeaderPanel(
                 colors = IconButtonDefaults.iconButtonColors(
                     containerColor = SleekOrange
                 ),
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(38.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Pause,
                     contentDescription = "Pause match",
                     tint = Color.Black,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun TurnTimerCountdownStrip(
+    engine: com.example.model.CarromEngine,
+    modifier: Modifier = Modifier
+) {
+    val activePlayer = engine.players.getOrNull(engine.activePlayerIndex)
+    val remaining = engine.turnTimeRemaining
+    val limit = engine.turnTimeLimitSeconds
+    val isWarning = engine.timerWarningActive
+    val progress = if (limit > 0f) (remaining / limit).coerceIn(0f, 1f) else 1f
+
+    val infiniteTransition = rememberInfiniteTransition(label = "strip_warning_pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(280, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
+    val barColor = when {
+        isWarning -> Color(0xFFFF1744)
+        progress < 0.4f -> SleekOrange
+        progress < 0.7f -> SleekAmber
+        else -> Color(0xFF00E676)
+    }
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 80, easing = LinearEasing),
+        label = "turn_progress"
+    )
+
+    Surface(
+        color = if (isWarning) Color(0xFFFF1744).copy(alpha = 0.12f * pulseAlpha) else SleekSurface.copy(alpha = 0.5f),
+        border = BorderStroke(
+            1.dp,
+            if (isWarning) Color(0xFFFF1744).copy(alpha = pulseAlpha) else SleekSurfaceBorder
+        ),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (isWarning) Icons.Default.Warning else Icons.Default.Timer,
+                        contentDescription = "Turn Timer",
+                        tint = barColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isWarning) {
+                            "⚠️ TIME RUNNING OUT: ${activePlayer?.name ?: "Player"}"
+                        } else if (engine.isMoving) {
+                            "🎯 SHOT IN MOTION..."
+                        } else {
+                            "⏱ ${activePlayer?.name ?: "Player"}'s Turn"
+                        },
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isWarning) Color(0xFFFF5252) else SleekTextPrimary,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (engine.isMoving) "WAIT" else "${remaining.toInt().coerceAtLeast(0)}s left",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = barColor
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "(-5 pts penalty)",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = SleekTextMuted
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Smooth linear countdown track
+            LinearProgressIndicator(
+                progress = { animatedProgress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = barColor,
+                trackColor = SleekSurfaceBorder.copy(alpha = 0.5f)
+            )
         }
     }
 }

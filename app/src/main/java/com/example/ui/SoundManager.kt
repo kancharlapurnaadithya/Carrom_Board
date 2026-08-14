@@ -72,6 +72,28 @@ object SoundManager {
         }
     }
 
+    fun playWarningTickSound() {
+        if (!isSoundEnabled) return
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                toneGenerator?.startTone(ToneGenerator.TONE_PROP_PROMPT, 60)
+            } catch (e: Exception) {
+                // fallback
+            }
+        }
+    }
+
+    fun playTimeoutBuzzerSound() {
+        if (!isSoundEnabled) return
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                toneGenerator?.startTone(ToneGenerator.TONE_SUP_ERROR, 350)
+            } catch (e: Exception) {
+                // fallback
+            }
+        }
+    }
+
     fun playVictorySound() {
         if (!isSoundEnabled) return
         CoroutineScope(Dispatchers.IO).launch {

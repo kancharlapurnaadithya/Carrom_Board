@@ -62,6 +62,13 @@ class CarromEngine(
     var gameCompleted = false
     var winnerName = ""
 
+    // Turn Countdown Timer state
+    var isTimerEnabled = true
+    var turnTimeLimitSeconds = 15f // Standard 15 seconds per turn
+    var turnTimeRemaining = 15f
+    var timerWarningActive = false
+    var timeoutOccurredThisTick = false
+
     // Particles for collection effects
     var particles = mutableListOf<Particle>()
 
@@ -119,6 +126,9 @@ class CarromEngine(
         matchLogs.clear()
         matchLogs.add("Match initialized. ${numberOfPlayers} players ready.")
         particles.clear()
+        turnTimeRemaining = turnTimeLimitSeconds
+        timerWarningActive = false
+        timeoutOccurredThisTick = false
 
         initializeCoins()
         resetStrikerForPlayer(0)
@@ -197,6 +207,9 @@ class CarromEngine(
         isStrikerPlaced = true
         isMoving = false
         isAiming = false
+        turnTimeRemaining = turnTimeLimitSeconds
+        timerWarningActive = false
+        timeoutOccurredThisTick = false
     }
 
     fun updateStrikerPlacement(positionFraction: Float) {
@@ -244,10 +257,61 @@ class CarromEngine(
         foulOccurred = false
         queenPocketedThisTurn = false
         turnScoreDelta = 0
+        timerWarningActive = false
+    }
+
+    fun setTurnTimeLimit(seconds: Float) {
+        turnTimeLimitSeconds = seconds
+        if (seconds <= 0f) {
+            isTimerEnabled = false
+            turnTimeRemaining = 0f
+        } else {
+            isTimerEnabled = true
+            turnTimeRemaining = seconds
+        }
+        timerWarningActive = false
+        timeoutOccurredThisTick = false
+    }
+
+    fun resetTurnTimer() {
+        turnTimeRemaining = turnTimeLimitSeconds
+        timerWarningActive = false
+        timeoutOccurredThisTick = false
+    }
+
+    fun handleTimeoutPenalty() {
+        val player = players.getOrNull(activePlayerIndex) ?: return
+        foulOccurred = true
+        player.score = (player.score - 5).coerceAtLeast(0)
+        matchLogs.add("⏳ TIME'S UP! ${player.name} ran out of time! (-5 pts penalty, turn passed).")
+        triggerPocketBurst(striker.x, striker.y, CoinType.STRIKER)
+        nextTurn()
     }
 
     // Single step physics update tick. Run inside Compose Coroutine Canvas loop
-    fun updatePhysicsTick() {
+    fun updatePhysicsTick(dt: Float = 0.016f) {
+        timeoutOccurredThisTick = false
+
+        // Turn countdown timer: actively counts down while player is aiming & preparing to shoot
+        if (isTimerEnabled && turnTimeLimitSeconds > 0f && !isMoving && isStrikerPlaced && !gameCompleted) {
+            turnTimeRemaining -= dt
+            if (turnTimeRemaining <= 4.0f && turnTimeRemaining > 0f) {
+                timerWarningActive = true
+            } else {
+                timerWarningActive = false
+            }
+
+            if (turnTimeRemaining <= 0f) {
+                turnTimeRemaining = 0f
+                timerWarningActive = false
+                timeoutOccurredThisTick = true
+                handleTimeoutPenalty()
+                return
+            }
+        } else if (isMoving) {
+            timerWarningActive = false
+        }
+
         var anyMoved = false
 
         // Check if striker is active

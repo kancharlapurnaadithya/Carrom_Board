@@ -47,6 +47,7 @@ fun SettingsScreen(
     var soundsOn by remember { mutableStateOf(SoundManager.isSoundEnabled) }
     var musicOn by remember { mutableStateOf(SoundManager.isMusicEnabled) }
     var vibrationOn by remember { mutableStateOf(SoundManager.isVibrationEnabled) }
+    var localTimerLimit by remember { mutableStateOf(viewModel.turnTimerSeconds) }
 
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
@@ -72,7 +73,7 @@ fun SettingsScreen(
                     IconButton(onClick = {
                         SoundManager.playStrikeSound()
                         // Auto save changes before navigating back
-                        viewModel.saveSettings(localBoard, localCoins, soundsOn, musicOn, vibrationOn)
+                        viewModel.saveSettings(localBoard, localCoins, soundsOn, musicOn, vibrationOn, localTimerLimit)
                         viewModel.navigateTo(AppScreen.MENU)
                     }) {
                         Icon(
@@ -86,7 +87,7 @@ fun SettingsScreen(
                     IconButton(onClick = {
                         SoundManager.playStrikeSound()
                         // Save triggers
-                        viewModel.saveSettings(localBoard, localCoins, soundsOn, musicOn, vibrationOn)
+                        viewModel.saveSettings(localBoard, localCoins, soundsOn, musicOn, vibrationOn, localTimerLimit)
                         SoundManager.triggerVibration(context)
                     }) {
                         Icon(
@@ -168,7 +169,98 @@ fun SettingsScreen(
                         }
                     }
 
-                    // 2. CHOOSE BOARD STYLE
+                    // 2. TURN COUNTDOWN TIMER & PENALTY RULES
+                    Text(
+                        "TURN TIME LIMIT & RULES",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SleekTextMuted,
+                        letterSpacing = 1.sp
+                    )
+
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = SleekSurface.copy(alpha = 0.5f)
+                        ),
+                        border = BorderStroke(1.dp, SleekSurfaceBorder),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Timer,
+                                        contentDescription = null,
+                                        tint = SleekOrange,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            "Shot Countdown Timer",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = SleekTextPrimary
+                                        )
+                                        Text(
+                                            if (localTimerLimit > 0f) "Expires in ${localTimerLimit.toInt()}s • -5 pts & passes turn" else "Timer disabled (unlimited time)",
+                                            fontSize = 10.sp,
+                                            color = SleekTextMuted
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            val timerOptions = listOf(
+                                10f to "10s Blitz",
+                                15f to "15s Pro",
+                                20f to "20s Relaxed",
+                                30f to "30s Casual",
+                                0f to "Unlimited"
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                timerOptions.forEach { (sec, label) ->
+                                    val isSelected = (sec == 0f && localTimerLimit <= 0f) || (sec > 0f && localTimerLimit == sec)
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            SoundManager.playStrikeSound()
+                                            localTimerLimit = sec
+                                        },
+                                        label = {
+                                            Text(
+                                                text = label,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.Black else SleekTextPrimary
+                                            )
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SleekOrange,
+                                            containerColor = SleekBackground
+                                        ),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isSelected) SleekOrange else SleekSurfaceBorder
+                                        ),
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. CHOOSE BOARD STYLE
                     Text(
                         "CARROM BOARD THEME",
                         fontSize = 11.sp,
@@ -237,6 +329,7 @@ fun SettingsScreen(
                         soundsOn = SoundManager.isSoundEnabled
                         musicOn = SoundManager.isMusicEnabled
                         vibrationOn = SoundManager.isVibrationEnabled
+                        localTimerLimit = viewModel.turnTimerSeconds
                         SoundManager.triggerVibration(context)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = SleekOrange),

@@ -91,9 +91,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     // Placement & Power state
     var strikerPositionFraction by mutableStateOf(0.5f)
     var powerBoostMultiplier by mutableStateOf(1.3f)
+    var turnTimerSeconds by mutableStateOf(15f)
+
+    private var lastTickedSecond = -1
 
     fun setPowerBoost(boost: Float) {
         powerBoostMultiplier = boost
+    }
+
+    fun setTurnTimerDuration(seconds: Float) {
+        turnTimerSeconds = seconds
+        engine.setTurnTimeLimit(seconds)
+        sharedPrefs.edit().putFloat("TURN_TIMER_SEC", seconds).apply()
     }
 
     init {
@@ -117,6 +126,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         SoundManager.isMusicEnabled = sharedPrefs.getBoolean("MUSIC_ON", true)
         SoundManager.isVibrationEnabled = sharedPrefs.getBoolean("VIBRATION_ON", true)
 
+        turnTimerSeconds = sharedPrefs.getFloat("TURN_TIMER_SEC", 15f)
+        engine.setTurnTimeLimit(turnTimerSeconds)
+
         player1Name = sharedPrefs.getString("PLAYER_1_NAME", "Player 1") ?: "Player 1"
         player2Name = sharedPrefs.getString("PLAYER_2_NAME", "Player 2") ?: "Player 2"
         player3Name = sharedPrefs.getString("PLAYER_3_NAME", "Player 3") ?: "Player 3"
@@ -128,13 +140,15 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         selectedCoins: CoinTheme,
         soundsOn: Boolean,
         musicOn: Boolean,
-        vibrationOn: Boolean
+        vibrationOn: Boolean,
+        timerLimit: Float = turnTimerSeconds
     ) {
         boardTheme = selectedBoard
         coinTheme = selectedCoins
         SoundManager.isSoundEnabled = soundsOn
         SoundManager.isMusicEnabled = musicOn
         SoundManager.isVibrationEnabled = vibrationOn
+        turnTimerSeconds = timerLimit
 
         sharedPrefs.edit()
             .putString("BOARD_THEME", selectedBoard.name)
@@ -142,11 +156,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             .putBoolean("SOUNDS_ON", soundsOn)
             .putBoolean("MUSIC_ON", musicOn)
             .putBoolean("VIBRATION_ON", vibrationOn)
+            .putFloat("TURN_TIMER_SEC", timerLimit)
             .apply()
         
-        // Update active engine themes
+        // Update active engine themes and timer
         engine.boardTheme = selectedBoard
         engine.coinTheme = selectedCoins
+        engine.setTurnTimeLimit(timerLimit)
     }
 
     fun savePlayerNames(p1: String, p2: String, p3: String, p4: String) {
@@ -247,6 +263,20 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     val queenLeftBefore = engine.queenLeft
 
                     engine.updatePhysicsTick()
+
+                    // Handle turn timer warning tick and timeout buzzer sound cues
+                    if (engine.timeoutOccurredThisTick) {
+                        SoundManager.playTimeoutBuzzerSound()
+                        lastTickedSecond = -1
+                    } else if (engine.timerWarningActive) {
+                        val currentSecond = engine.turnTimeRemaining.toInt() + 1
+                        if (currentSecond != lastTickedSecond && currentSecond in 1..4) {
+                            lastTickedSecond = currentSecond
+                            SoundManager.playWarningTickSound()
+                        }
+                    } else {
+                        lastTickedSecond = -1
+                    }
 
                     // Analyze ticks to play sound triggers
                     val isMovingNow = engine.isMoving
