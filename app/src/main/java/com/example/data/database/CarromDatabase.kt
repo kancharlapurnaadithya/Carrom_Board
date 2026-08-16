@@ -20,7 +20,7 @@ abstract class CarromDatabase : RoomDatabase() {
                     CarromDatabase::class.java,
                     "carrom_database"
                 )
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance
                 instance
