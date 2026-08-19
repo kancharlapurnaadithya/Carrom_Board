@@ -10,6 +10,7 @@ class CarromEngine(
     var playerNames: List<String> = listOf("Player 1", "Player 2"),
     var boardTheme: BoardTheme = BoardTheme.WOODEN,
     var coinTheme: CoinTheme = CoinTheme.CLASSIC,
+    var strikerDesign: StrikerDesign = StrikerDesign.IVORY_GOLD_MASTER,
     var aiDifficulty: AiDifficulty = AiDifficulty.INTERMEDIATE
 ) {
     companion object {

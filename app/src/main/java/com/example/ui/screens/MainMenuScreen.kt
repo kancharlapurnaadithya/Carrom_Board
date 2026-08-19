@@ -189,65 +189,139 @@ fun MainMenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 3. Mini Premium Wood Board Preview (Matching HTML Board Preview visually!)
-            Box(
+            // 3. Dynamic Board & Striker Stage Showcase
+            Card(
                 modifier = Modifier
-                    .scale(scaleFactor)
-                    .padding(vertical = 12.dp)
-                    .size(170.dp)
-                    .background(Color(0xFFC69263), shape = RoundedCornerShape(8.dp))
-                    .border(6.dp, Color(0xFF5D3A1A), shape = RoundedCornerShape(8.dp))
-                    .padding(6.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = SleekSurface.copy(alpha = 0.8f)
+                ),
+                border = BorderStroke(1.dp, SleekSurfaceBorder)
             ) {
-                Box(
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .border(1.5.dp, Color(0xFF5D3A1A).copy(alpha = 0.4f), shape = RoundedCornerShape(4.dp))
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Center Star Ring
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .align(Alignment.Center)
-                            .border(1.2.dp, Color(0xFF5D3A1A).copy(alpha = 0.45f), shape = CircleShape),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(Color(0xFFD32F2F), shape = CircleShape)
+                        Text(
+                            "EQUIPPED GEAR & STAGE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SleekOrange,
+                            letterSpacing = 1.sp
                         )
+
+                        TextButton(
+                            onClick = {
+                                SoundManager.playStrikeSound()
+                                viewModel.navigateTo(AppScreen.SETTINGS)
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                "CHANGE",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = SleekTextPrimary
+                            )
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = SleekTextPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
 
-                    // Baseliners
-                    Box(modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp).fillMaxWidth(0.7f).height(1.dp).background(Color(0xFF5D3A1A).copy(alpha = 0.35f)))
-                    Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp).fillMaxWidth(0.7f).height(1.dp).background(Color(0xFF5D3A1A).copy(alpha = 0.35f)))
-                    Box(modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp).fillMaxHeight(0.7f).width(1.dp).background(Color(0xFF5D3A1A).copy(alpha = 0.35f)))
-                    Box(modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).fillMaxHeight(0.7f).width(1.dp).background(Color(0xFF5D3A1A).copy(alpha = 0.35f)))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Pockets (Visual Black Circles)
-                    Box(modifier = Modifier.size(14.dp).background(Color(0xFF121212), shape = CircleShape).align(Alignment.TopStart))
-                    Box(modifier = Modifier.size(14.dp).background(Color(0xFF121212), shape = CircleShape).align(Alignment.TopEnd))
-                    Box(modifier = Modifier.size(14.dp).background(Color(0xFF121212), shape = CircleShape).align(Alignment.BottomStart))
-                    Box(modifier = Modifier.size(14.dp).background(Color(0xFF121212), shape = CircleShape).align(Alignment.BottomEnd))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Board Column Preview
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clickable {
+                                    SoundManager.playStrikeSound()
+                                    // Cycle to next board
+                                    val boards = com.example.model.BoardTheme.values()
+                                    val nextIndex = (viewModel.boardTheme.ordinal + 1) % boards.size
+                                    viewModel.setBoardThemeDirect(boards[nextIndex])
+                                    SoundManager.triggerVibration(context)
+                                }
+                                .padding(4.dp)
+                        ) {
+                            com.example.ui.components.MiniBoardPreview(
+                                theme = viewModel.boardTheme,
+                                modifier = Modifier
+                                    .scale(scaleFactor)
+                                    .size(100.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = viewModel.boardTheme.displayName,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = SleekTextPrimary,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "Tap to switch board",
+                                fontSize = 9.sp,
+                                color = SleekTextMuted
+                            )
+                        }
+
+                        // Striker / Stager Column Preview
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clickable {
+                                    SoundManager.playStrikeSound()
+                                    // Cycle to next striker
+                                    val strikers = com.example.model.StrikerDesign.values()
+                                    val nextIndex = (viewModel.strikerDesign.ordinal + 1) % strikers.size
+                                    viewModel.setStrikerDesignDirect(strikers[nextIndex])
+                                    SoundManager.triggerVibration(context)
+                                }
+                                .padding(4.dp)
+                        ) {
+                            com.example.ui.components.MiniStrikerPreview(
+                                design = viewModel.strikerDesign,
+                                modifier = Modifier
+                                    .scale(scaleFactor)
+                                    .size(90.dp)
+                                    .clip(CircleShape)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = viewModel.strikerDesign.displayName,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = viewModel.strikerDesign.accentGlowColor,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "Tap to switch striker",
+                                fontSize = 9.sp,
+                                color = SleekTextMuted
+                            )
+                        }
+                    }
                 }
             }
-
-            Text(
-                text = "Classic Wooden Board",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = SleekTextPrimary,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            Text(
-                text = "Active Theme Setting",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = SleekTextMuted,
-                letterSpacing = 0.5.sp
-            )
 
             Spacer(modifier = Modifier.height(28.dp))
 

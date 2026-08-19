@@ -51,10 +51,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var currentScreen by mutableStateOf(AppScreen.MENU)
         private set
 
-    // Available board themes & coin packs
+    // Available board themes & coin packs & striker designs
     var boardTheme by mutableStateOf(BoardTheme.WOODEN)
         private set
     var coinTheme by mutableStateOf(CoinTheme.CLASSIC)
+        private set
+    var strikerDesign by mutableStateOf(StrikerDesign.IVORY_GOLD_MASTER)
         private set
 
     // Game stats & records from database
@@ -129,6 +131,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val coinThemeName = sharedPrefs.getString("COIN_THEME", CoinTheme.CLASSIC.name) ?: CoinTheme.CLASSIC.name
         coinTheme = try { CoinTheme.valueOf(coinThemeName) } catch (e: Exception) { CoinTheme.CLASSIC }
 
+        val strikerDesignName = sharedPrefs.getString("STRIKER_DESIGN", StrikerDesign.IVORY_GOLD_MASTER.name) ?: StrikerDesign.IVORY_GOLD_MASTER.name
+        strikerDesign = try { StrikerDesign.valueOf(strikerDesignName) } catch (e: Exception) { StrikerDesign.IVORY_GOLD_MASTER }
+
         val aiDifficultyName = sharedPrefs.getString("AI_DIFFICULTY", AiDifficulty.INTERMEDIATE.name) ?: AiDifficulty.INTERMEDIATE.name
         aiDifficulty = try { AiDifficulty.valueOf(aiDifficultyName) } catch (e: Exception) { AiDifficulty.INTERMEDIATE }
 
@@ -139,6 +144,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         turnTimerSeconds = sharedPrefs.getFloat("TURN_TIMER_SEC", 15f)
         engine.setTurnTimeLimit(turnTimerSeconds)
         engine.aiDifficulty = aiDifficulty
+        engine.boardTheme = boardTheme
+        engine.coinTheme = coinTheme
+        engine.strikerDesign = strikerDesign
 
         player1Name = sharedPrefs.getString("PLAYER_1_NAME", "Player 1") ?: "Player 1"
         player2Name = sharedPrefs.getString("PLAYER_2_NAME", "Player 2") ?: "Player 2"
@@ -146,9 +154,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         player4Name = sharedPrefs.getString("PLAYER_4_NAME", "Player 4") ?: "Player 4"
     }
 
+    fun setBoardThemeDirect(theme: BoardTheme) {
+        boardTheme = theme
+        engine.boardTheme = theme
+        sharedPrefs.edit().putString("BOARD_THEME", theme.name).apply()
+    }
+
+    fun setStrikerDesignDirect(design: StrikerDesign) {
+        strikerDesign = design
+        engine.strikerDesign = design
+        sharedPrefs.edit().putString("STRIKER_DESIGN", design.name).apply()
+    }
+
     fun saveSettings(
         selectedBoard: BoardTheme,
         selectedCoins: CoinTheme,
+        selectedStriker: StrikerDesign = strikerDesign,
         soundsOn: Boolean,
         musicOn: Boolean,
         vibrationOn: Boolean,
@@ -157,6 +178,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         boardTheme = selectedBoard
         coinTheme = selectedCoins
+        strikerDesign = selectedStriker
         SoundManager.isSoundEnabled = soundsOn
         SoundManager.isMusicEnabled = musicOn
         SoundManager.isVibrationEnabled = vibrationOn
@@ -166,6 +188,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         sharedPrefs.edit()
             .putString("BOARD_THEME", selectedBoard.name)
             .putString("COIN_THEME", selectedCoins.name)
+            .putString("STRIKER_DESIGN", selectedStriker.name)
             .putBoolean("SOUNDS_ON", soundsOn)
             .putBoolean("MUSIC_ON", musicOn)
             .putBoolean("VIBRATION_ON", vibrationOn)
@@ -173,9 +196,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             .putString("AI_DIFFICULTY", difficulty.name)
             .apply()
         
-        // Update active engine themes, timer, and AI difficulty
+        // Update active engine themes, striker, timer, and AI difficulty
         engine.boardTheme = selectedBoard
         engine.coinTheme = selectedCoins
+        engine.strikerDesign = selectedStriker
         engine.setTurnTimeLimit(timerLimit)
         engine.aiDifficulty = difficulty
     }
@@ -228,6 +252,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             playerNames = names,
             boardTheme = boardTheme,
             coinTheme = coinTheme,
+            strikerDesign = strikerDesign,
             aiDifficulty = aiDifficulty
         )
         engine.setTurnTimeLimit(turnTimerSeconds)
