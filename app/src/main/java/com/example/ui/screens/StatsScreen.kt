@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,6 +45,11 @@ fun StatsScreen(
 ) {
     val context = LocalContext.current
     val matches by viewModel.matches.collectAsState()
+
+    BackHandler {
+        SoundManager.playStrikeSound()
+        viewModel.navigateTo(AppScreen.MENU)
+    }
 
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(

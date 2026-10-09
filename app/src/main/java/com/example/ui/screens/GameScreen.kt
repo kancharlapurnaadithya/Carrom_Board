@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -34,6 +35,7 @@ import com.example.model.CoinType
 import com.example.model.Player
 import com.example.ui.SoundManager
 import com.example.ui.components.CarromBoardCanvas
+import com.example.ui.components.StrikerPowerMeter
 import com.example.ui.theme.*
 import com.example.viewmodel.AppScreen
 import com.example.viewmodel.GameViewModel
@@ -50,6 +52,20 @@ fun GameScreen(
 
     val boardTheme = viewModel.boardTheme
     val coinTheme = viewModel.coinTheme
+
+    // Live Aiming Power State for Visual Power Meter
+    var isAiming by remember { mutableStateOf(false) }
+    var currentAimPowerFraction by remember { mutableFloatStateOf(0f) }
+
+    BackHandler {
+        if (viewModel.isPaused || engine.gameCompleted) {
+            SoundManager.playStrikeSound()
+            viewModel.navigateTo(AppScreen.MENU)
+        } else {
+            SoundManager.playStrikeSound()
+            viewModel.togglePause()
+        }
+    }
 
     // Sleek background gradient
     val backgroundBrush = Brush.verticalGradient(
@@ -114,18 +130,44 @@ fun GameScreen(
                     strikerPlacedPositionFraction = viewModel.strikerPositionFraction,
                     powerBoostMultiplier = viewModel.powerBoostMultiplier,
                     onAimStart = { offset ->
-                        // State transition if needed
+                        isAiming = true
                     },
                     onAimDrag = { offset ->
-                        // Tracking drag previews
+                        isAiming = true
+                    },
+                    onAimPowerChange = { power ->
+                        currentAimPowerFraction = power
                     },
                     onAimRelease = { offset, power ->
-                        // Launch handled internally inside canvas via engine release vectors
+                        isAiming = false
+                        currentAimPowerFraction = 0f
+                    },
+                    onEnd = { power, launchVx, launchVy ->
+                        // onEnd handler invoked with calculated power value for physics calculations
+                        isAiming = false
+                        currentAimPowerFraction = 0f
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("carrom_board_canvas")
                 )
+
+                // Visual Striker Power Meter HUD Overlay displayed while aiming
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isAiming || currentAimPowerFraction > 0.02f,
+                    enter = fadeIn(tween(150)) + slideInVertically(tween(150)) { -it / 2 },
+                    exit = fadeOut(tween(200)) + slideOutVertically(tween(200)) { -it / 2 },
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 12.dp, start = 20.dp, end = 20.dp)
+                ) {
+                    StrikerPowerMeter(
+                        powerFraction = currentAimPowerFraction,
+                        powerBoostMultiplier = viewModel.powerBoostMultiplier,
+                        isAiming = isAiming,
+                        modifier = Modifier.fillMaxWidth(0.92f)
+                    )
+                }
             }
 
             // 3. STRIKER POWER BOOST SELECTOR & BASELINE POSITIONING SLIDER
@@ -286,6 +328,11 @@ fun GameScreen(
         // A. PAUSE MODAL DIALOG
         if (viewModel.isPaused) {
             PauseOverlayDialog(
+                currentTimerSec = viewModel.turnTimerSeconds,
+                onTimerChange = { newSec ->
+                    viewModel.setTurnTimerDuration(newSec)
+                    SoundManager.triggerVibration(context)
+                },
                 onResume = { viewModel.togglePause() },
                 onRestart = { viewModel.restartCurrentGame() },
                 onExit = {
@@ -650,6 +697,8 @@ fun MatchEventsLogScroller(
 
 @Composable
 fun PauseOverlayDialog(
+    currentTimerSec: Float,
+    onTimerChange: (Float) -> Unit,
     onResume: () -> Unit,
     onRestart: () -> Unit,
     onExit: () -> Unit
@@ -666,40 +715,105 @@ fun PauseOverlayDialog(
             )
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.PauseCircleFilled,
                     contentDescription = null,
                     tint = SleekOrange,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(54.dp)
                 )
 
                 Text(
                     "MATCH PAUSED",
-                    fontSize = 22.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = SleekTextPrimary,
                     letterSpacing = 1.sp
                 )
 
-                Text(
-                    "Take a break, stretch your fingers, and resume when ready.",
-                    fontSize = 12.sp,
-                    color = SleekTextSecondary,
-                    textAlign = TextAlign.Center
-                )
+                // Strike Time Limit quick selector in Pause
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(SleekBackground.copy(alpha = 0.6f), shape = RoundedCornerShape(10.dp))
+                        .border(1.dp, SleekSurfaceBorder, shape = RoundedCornerShape(10.dp))
+                        .padding(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "STRIKE TIME LIMIT",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SleekOrange,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = if (currentTimerSec > 0f) "${currentTimerSec.toInt()}s" else "Off",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SleekTextPrimary
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    val timeOptions = listOf(
+                        10f to "10s",
+                        15f to "15s",
+                        20f to "20s",
+                        30f to "30s",
+                        0f to "Off"
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        timeOptions.forEach { (sec, label) ->
+                            val isSelected = (sec == 0f && currentTimerSec <= 0f) || (sec > 0f && currentTimerSec == sec)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    SoundManager.playStrikeSound()
+                                    onTimerChange(sec)
+                                },
+                                label = {
+                                    Text(
+                                        text = label,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) Color.Black else SleekTextPrimary
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = SleekOrange,
+                                    containerColor = SleekSurface
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isSelected) SleekOrange else SleekSurfaceBorder
+                                ),
+                                modifier = Modifier.weight(1f).height(32.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Action buttons list
                 Button(
                     onClick = onResume,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
+                        .height(46.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SleekOrange)
                 ) {
                     Text("RESUME MATCH", color = Color.Black, fontWeight = FontWeight.Bold)
@@ -709,7 +823,7 @@ fun PauseOverlayDialog(
                     onClick = onRestart,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
+                        .height(46.dp),
                     border = BorderStroke(1.dp, SleekOrange),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = SleekTextPrimary)
                 ) {
@@ -720,7 +834,7 @@ fun PauseOverlayDialog(
                     onClick = onExit,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(44.dp)
                 ) {
                     Text("QUIT TO MENU", color = SleekOrangeLight, fontWeight = FontWeight.Bold)
                 }

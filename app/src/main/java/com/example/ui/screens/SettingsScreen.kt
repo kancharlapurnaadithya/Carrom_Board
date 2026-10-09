@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -66,6 +67,11 @@ fun SettingsScreen(
     var localTimerLimit by remember { mutableStateOf(viewModel.turnTimerSeconds) }
 
     var selectedTab by remember { mutableStateOf(SettingsCategory.BOARDS) }
+
+    BackHandler {
+        SoundManager.playStrikeSound()
+        viewModel.navigateTo(AppScreen.MENU)
+    }
 
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(

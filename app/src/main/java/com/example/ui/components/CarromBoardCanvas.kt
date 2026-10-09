@@ -35,9 +35,11 @@ fun CarromBoardCanvas(
     engine: CarromEngine,
     strikerPlacedPositionFraction: Float,
     powerBoostMultiplier: Float = 1.0f,
-    onAimStart: (Offset) -> Unit,
-    onAimDrag: (Offset) -> Unit,
-    onAimRelease: (Offset, Float) -> Unit,
+    onAimStart: (Offset) -> Unit = {},
+    onAimDrag: (Offset) -> Unit = {},
+    onAimPowerChange: (Float) -> Unit = {},
+    onAimRelease: (Offset, Float) -> Unit = { _, _ -> },
+    onEnd: ((power: Float, launchVx: Float, launchVy: Float) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -64,7 +66,7 @@ fun CarromBoardCanvas(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInteropFilter { event ->
-                    if (engine.isMoving || engine.gameCompleted) return@pointerInteropFilter false
+                    if (engine.isMoving || engine.gameCompleted || canvasSize.width <= 0f || canvasSize.height <= 0f) return@pointerInteropFilter false
 
                     val scaleX = canvasSize.width / CarromEngine.BOARD_SIZE
                     val scaleY = canvasSize.height / CarromEngine.BOARD_SIZE
@@ -87,6 +89,7 @@ fun CarromBoardCanvas(
                                 dragStartOffset = Offset(event.x, event.y)
                                 dragCurrentOffset = Offset(event.x, event.y)
                                 onAimStart(dragStartOffset)
+                                onAimPowerChange(0f)
                                 SoundManager.triggerVibration(context)
                                 true
                             } else {
@@ -97,6 +100,12 @@ fun CarromBoardCanvas(
                             if (isDraggingStr) {
                                 dragCurrentOffset = Offset(event.x, event.y)
                                 onAimDrag(dragCurrentOffset)
+                                
+                                val vxV = (dragStartOffset.x - event.x) / scaleX
+                                val vyV = (dragStartOffset.y - event.y) / scaleY
+                                val curDist = sqrt(vxV * vxV + vyV * vyV)
+                                val powerFraction = (curDist / 200f).coerceIn(0f, 1f)
+                                onAimPowerChange(powerFraction)
                                 true
                             } else {
                                 false
@@ -113,6 +122,8 @@ fun CarromBoardCanvas(
                                 val dragDistance = sqrt(vxVirtual * vxVirtual + vyVirtual * vyVirtual)
                                 val maxDrag = 200f // Expanded virtual dimension drag limit for powerful shots
                                 val clampedDistance = dragDistance.coerceAtMost(maxDrag)
+                                val powerNormalized = (clampedDistance / maxDrag).coerceIn(0f, 1f)
+                                onAimPowerChange(0f)
 
                                 val angle = atan2(vyVirtual, vxVirtual)
                                 val basePowerFactor = 0.35f // Boosted striker base power
@@ -123,6 +134,8 @@ fun CarromBoardCanvas(
                                 // Minimum firing threshold
                                 if (clampedDistance > 10f) {
                                     onAimRelease(dragStartOffset, clampedDistance)
+                                    // Invoke onEnd callback with the calculated power value and launch velocity vectors
+                                    onEnd?.invoke(powerNormalized, finalVx, finalVy)
                                     engine.launchStriker(finalVx, finalVy)
                                     if (clampedDistance > 130f) {
                                         // Extra particle flash on super shot launch with striker's signature particle color
@@ -132,6 +145,7 @@ fun CarromBoardCanvas(
                                     SoundManager.triggerVibration(context)
                                 } else {
                                     onAimRelease(dragStartOffset, 0f)
+                                    onEnd?.invoke(0f, 0f, 0f)
                                 }
                                 true
                             } else {
@@ -167,18 +181,66 @@ fun CarromBoardCanvas(
             if (!engine.isStrikerPlaced && !engine.striker.isPocketed) {
                 drawStrikerEntity(this, engine.striker, strikerDesign, avgScale, scaleX, scaleY)
             } else if (engine.isStrikerPlaced) {
+                val strikerCenterX = engine.striker.x * scaleX
+                val strikerCenterY = engine.striker.y * scaleY
+                
                 // Highlight placed striker
                 drawStrikerEntity(this, engine.striker, strikerDesign, avgScale, scaleX, scaleY)
                 
-                // Pulsating golden/neon placement ring
-                if (!engine.isMoving) {
-                    val pulseRadius = (CarromEngine.STRIKER_RADIUS + 5f) * avgScale
-                    drawCircle(
-                        color = strikerDesign.accentGlowColor,
-                        radius = pulseRadius,
-                        center = Offset(engine.striker.x * scaleX, engine.striker.y * scaleY),
-                        style = Stroke(width = 2f * avgScale)
-                    )
+                // Active Countdown Ring around Striker when waiting to kick/strike
+                if (!engine.isMoving && !engine.gameCompleted) {
+                    val pulseRadius = (CarromEngine.STRIKER_RADIUS + 6f) * avgScale
+                    val baseRingRadius = (CarromEngine.STRIKER_RADIUS + 9f) * avgScale
+
+                    if (engine.isTimerEnabled && engine.turnTimeLimitSeconds > 0f) {
+                        val fractionRemaining = (engine.turnTimeRemaining / engine.turnTimeLimitSeconds).coerceIn(0f, 1f)
+                        val sweep = 360f * fractionRemaining
+                        
+                        val timerRingColor = when {
+                            engine.timerWarningActive -> Color(0xFFFF1744)
+                            fractionRemaining < 0.35f -> Color(0xFFFF5252)
+                            fractionRemaining < 0.65f -> Color(0xFFFFB300)
+                            else -> Color(0xFF00E676)
+                        }
+
+                        // Background track for timer arc
+                        drawCircle(
+                            color = Color.Black.copy(alpha = 0.4f),
+                            radius = baseRingRadius,
+                            center = Offset(strikerCenterX, strikerCenterY),
+                            style = Stroke(width = 3.5f * avgScale)
+                        )
+
+                        // Glowing Arc countdown showing remaining time to kick striker
+                        drawArc(
+                            color = timerRingColor,
+                            startAngle = -90f,
+                            sweepAngle = sweep,
+                            useCenter = false,
+                            topLeft = Offset(strikerCenterX - baseRingRadius, strikerCenterY - baseRingRadius),
+                            size = Size(baseRingRadius * 2, baseRingRadius * 2),
+                            style = Stroke(width = 4f * avgScale, cap = StrokeCap.Round)
+                        )
+
+                        // Urgent Warning Pulse Aura when < 4s
+                        if (engine.timerWarningActive) {
+                            val auraRadius = (CarromEngine.STRIKER_RADIUS + 14f) * avgScale
+                            drawCircle(
+                                color = Color(0xFFFF1744).copy(alpha = 0.35f),
+                                radius = auraRadius,
+                                center = Offset(strikerCenterX, strikerCenterY),
+                                style = Stroke(width = 2.5f * avgScale)
+                            )
+                        }
+                    } else {
+                        // Standard steady glow ring when timer is disabled
+                        drawCircle(
+                            color = strikerDesign.accentGlowColor,
+                            radius = pulseRadius,
+                            center = Offset(strikerCenterX, strikerCenterY),
+                            style = Stroke(width = 2f * avgScale)
+                        )
+                    }
                 }
             }
 

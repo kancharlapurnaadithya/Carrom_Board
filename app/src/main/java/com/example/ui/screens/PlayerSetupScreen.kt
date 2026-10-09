@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,6 +48,11 @@ fun PlayerSetupScreen(
     var p2Name by remember { mutableStateOf(viewModel.player2Name) }
     var p3Name by remember { mutableStateOf(viewModel.player3Name) }
     var p4Name by remember { mutableStateOf(viewModel.player4Name) }
+
+    BackHandler {
+        SoundManager.playStrikeSound()
+        viewModel.navigateTo(AppScreen.MENU)
+    }
 
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
@@ -234,9 +240,86 @@ fun PlayerSetupScreen(
                             colorLabel = SleekAmberLight
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 3. STRIKE TIME LIMIT SELECTOR
+                    Text(
+                        "STRIKE TIME LIMIT PER TURN",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SleekTextMuted,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 8.dp)
+                    )
+
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = SleekSurface.copy(alpha = 0.5f)
+                        ),
+                        border = BorderStroke(1.dp, SleekSurfaceBorder),
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            val timeOptions = listOf(
+                                10f to "10s Blitz",
+                                15f to "15s Fast",
+                                20f to "20s Standard",
+                                30f to "30s Relaxed",
+                                0f to "No Limit"
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                timeOptions.forEach { (sec, label) ->
+                                    val isSelected = (sec == 0f && viewModel.turnTimerSeconds <= 0f) || (sec > 0f && viewModel.turnTimerSeconds == sec)
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            SoundManager.playStrikeSound()
+                                            viewModel.setTurnTimerDuration(sec)
+                                            SoundManager.triggerVibration(context)
+                                        },
+                                        label = {
+                                            Text(
+                                                text = label,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.Black else SleekTextPrimary
+                                            )
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SleekOrange,
+                                            containerColor = SleekBackground
+                                        ),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isSelected) SleekOrange else SleekSurfaceBorder
+                                        ),
+                                        modifier = Modifier.weight(1f).height(34.dp)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = if (viewModel.turnTimerSeconds > 0f)
+                                    "⚡ Players have ${viewModel.turnTimerSeconds.toInt()}s to aim & strike. Timeout results in -5 pts penalty."
+                                else
+                                    "⏳ Unlimited time to aim & strike.",
+                                fontSize = 10.sp,
+                                color = SleekTextSecondary,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
                 // Launch Match!
                 Button(

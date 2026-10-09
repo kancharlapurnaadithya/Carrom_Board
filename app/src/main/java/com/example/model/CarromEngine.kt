@@ -224,7 +224,7 @@ class CarromEngine(
         // Map 0.0 .. 1.0 slider to available baseline length
         val startX = 180f
         val endX = 620f
-        val pos = startX + (endX - startX) * positionFraction
+        val pos = startX + (endX - startX) * positionFraction.coerceIn(0f, 1f)
 
         when (activePlayerIndex) {
             0 -> { // Bottom
@@ -382,18 +382,26 @@ class CarromEngine(
         }
     }
 
-    private fun handleCollisions() {
-        val allEntities = mutableListOf<Coin>()
-        if (!isStrikerPlaced && !striker.isPocketed) {
-            allEntities.add(striker)
-        }
-        allEntities.addAll(coins.filter { !it.isPocketed })
+    private val collisionBuffer = ArrayList<Coin>(24)
 
+    private fun handleCollisions() {
+        collisionBuffer.clear()
+        if (!isStrikerPlaced && !striker.isPocketed) {
+            collisionBuffer.add(striker)
+        }
+        for (k in 0 until coins.size) {
+            val c = coins[k]
+            if (!c.isPocketed) {
+                collisionBuffer.add(c)
+            }
+        }
+
+        val entityCount = collisionBuffer.size
         // Check each pair
-        for (i in 0 until allEntities.size) {
-            for (j in i + 1 until allEntities.size) {
-                val c1 = allEntities[i]
-                val c2 = allEntities[j]
+        for (i in 0 until entityCount) {
+            for (j in i + 1 until entityCount) {
+                val c1 = collisionBuffer[i]
+                val c2 = collisionBuffer[j]
 
                 val dx = c2.x - c1.x
                 val dy = c2.y - c1.y
@@ -403,8 +411,8 @@ class CarromEngine(
                 if (dist < minDist) {
                     // Overlap occurrence! Push them apart
                     val overlap = minDist - dist
-                    val nx = dx / if (dist > 0f) dist else 1f
-                    val ny = dy / if (dist > 0f) dist else 1f
+                    val nx = if (dist > 0.0001f) dx / dist else 1f
+                    val ny = if (dist > 0.0001f) dy / dist else 0f
 
                     // Displace relative to mass ratio
                     val totalMass = c1.mass + c2.mass
@@ -663,7 +671,11 @@ class CarromEngine(
 
     private fun nextTurn() {
         activePlayerIndex = (activePlayerIndex + 1) % numberOfPlayers
+        val timeoutFlag = timeoutOccurredThisTick
         resetStrikerForPlayer(activePlayerIndex)
+        if (timeoutFlag) {
+            timeoutOccurredThisTick = true
+        }
         matchLogs.add("Turn passed to ${players[activePlayerIndex].name}.")
     }
 
